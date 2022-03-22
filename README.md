@@ -262,6 +262,11 @@ type LeaderboardPlayer = {
   exists: boolean
 };
 
+const numLeaderboardPlayers = Number(
+await moreMissilesPlzContract.methods.getNumLeaderboardPlayers()
+  .call({ from: address, value: "0x00" })
+);
+
 const leaderBoardPlayers: LeaderboardPlayer[] = [];
 for (let i = 0; i < numLeaderboardPlayers; i++) {
   leaderBoardPlayers.push(
