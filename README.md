@@ -153,12 +153,14 @@ console.log(events);
 
 ## starting a new game
 ```solidity
+// solidity
 function startNewUfoInvasionGame(uint randVal) public onlyOwner
 ```
 
 this should probably be called when you receive a `GameOver` event
 
 ```ts
+// typescript
 const startNewUfoInvasionGameMethod = moreMissilesPlzContract.methods.startNewUfoInvasionGame(getRandomInt(1, 10000));
 
 const receipt = await startNewUfoInvasionGameMethod
@@ -228,7 +230,6 @@ for e.g., to generate a list of the stats of all of the active UFOs in the curre
 
 ```ts
 // typescript
-
 type GameUfo = {
   address: string,
   ufoId: number,
@@ -252,6 +253,7 @@ for (let i = 0; i < curGameNumUFOs; i++) {
 or for querying the all-time leaderboard data
 
 ```ts
+// typescript
 type LeaderboardPlayer = {
   playerAddress: string,
   score: number,
