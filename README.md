@@ -155,6 +155,7 @@ console.log(events);
 ```solidity
 function startNewUfoInvasionGame(uint randVal) public onlyOwner
 ```
+
 this should probably be called when you receive a `GameOver` event
 
 ```ts
@@ -168,7 +169,7 @@ const receipt = await startNewUfoInvasionGameMethod
     nonce: await web3.eth.getTransactionCount(walletAddress, "pending"),
     chainId: 1088
   });
-
+```
 
 ## General Methods for Querying State
 ```solidity
