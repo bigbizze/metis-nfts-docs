@@ -263,8 +263,8 @@ type LeaderboardPlayer = {
 };
 
 const numLeaderboardPlayers = Number(
-await moreMissilesPlzContract.methods.getNumLeaderboardPlayers()
-  .call({ from: address, value: "0x00" })
+    await moreMissilesPlzContract.methods.getNumLeaderboardPlayers()
+      .call({ from: address, value: "0x00" })
 );
 
 const leaderBoardPlayers: LeaderboardPlayer[] = [];
