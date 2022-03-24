@@ -39,7 +39,7 @@ const getNamedProps = <T>(events: T[] | HasReturnValsProp<T>[]) =>
   events.map(x => hasReturnVals(x) ? x.returnValues : x).map(getNamedValsFromObj);
 ```
 
-## Minting
+## Minting & WorldLeader Methods
 ```solidity
 // solidity
 function getWorldLeaderMintContract(string memory leaderName) public view returns (address)
@@ -56,8 +56,13 @@ const worldLeaderMintContract = new web3.eth.Contract(
     worldLeaderAbi.abi as any,
     worldLeaderMintAddress
 );
+```
 
-const mintNftMethod = contract.methods.mintNFTs(amountToMint);
+then you can mint new NFTs using this like this:
+
+```ts
+
+const mintNftMethod = worldLeaderMintContract.methods.mintNFTs(amountToMint);
 
 const receipt = await mintNftMethod
   .send({
@@ -69,6 +74,23 @@ const receipt = await mintNftMethod
   });
 ```
 
+you can check the status of the release like this:
+
+```ts
+enum ReleaseStatus {
+  Unreleased,
+  Whitelisted,
+  Released
+}
+
+const curReleaseStatus = await worldLeaderMintContract.methods.getReleaseStatus()
+  .call({ from: walletAddress, value: "0x0" });
+
+if (curReleaseStatus === ReleaseStatus.Whitelisted) {
+  // ..
+}
+
+```
 ## Rolling Missiles
 ```solidity
 // solidity
