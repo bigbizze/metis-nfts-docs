@@ -15,7 +15,7 @@ contract MetisERC721 is ERC721Enumerable, OwnableOrMainContract {
     Counters.Counter private _tokenIdx;
 
     uint public constant MAX_SUPPLY = 10000;
-    uint public constant PRICE = 0.01 ether;
+    uint public constant PRICE = 0.00001 ether;
     uint public constant MAX_PER_MINT = 21;
     uint public constant WHITELIST_MAX_AMOUNT = 5;
 
@@ -26,8 +26,6 @@ contract MetisERC721 is ERC721Enumerable, OwnableOrMainContract {
     }
 
     ReleaseStatus public _releaseStatus = ReleaseStatus.Unreleased;
-
-    uint _balance = 0;
 
     address payable[] private _recipients;
 
