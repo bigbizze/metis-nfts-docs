@@ -79,14 +79,18 @@ function maybeGetMissiles(uint randVal) public
 // typescript
 const maybeGetMissileMethod = moreMissilesPlzContract.methods.maybeGetMissiles(getRandomInt(1, 100000))
 
-const receipt = await maybeGetMissileMethod
-  .send({
-    from: walletAddress,
-    to: moreMissilesPlzAddress,
-    gas: await maybeGetNukeMethod.estimateGas(),
-    nonce: await web3.eth.getTransactionCount(walletAddress, "pending"),
-    chainId: 1088
-  });
+const numMissilesReadyToRoll = await moreMissilesPlzContract.methods.numMissilesReadyToRoll().call({ from: address, value: "0x00" });
+      
+if (numMissilesReadyToRoll > 0) {
+    const receipt = await maybeGetMissileMethod
+      .send({
+        from: walletAddress,
+        to: moreMissilesPlzAddress,
+        gas: await maybeGetNukeMethod.estimateGas(),
+        nonce: await web3.eth.getTransactionCount(walletAddress, "pending"),
+        chainId: 1088
+      });
+}
 ```
 
 when a missile is created, it emites the `MissileCreated` event
@@ -175,16 +179,19 @@ this should probably be called when you receive a `GameOver` event
 
 ```ts
 // typescript
+const isGameActive = await moreMissilesPlzContract.methods.isGameActive().call({ from: wallet.address, value: "0x0" });
 const startNewUfoInvasionGameMethod = moreMissilesPlzContract.methods.startNewUfoInvasionGame(getRandomInt(1, 10000));
+if (!isGameActive) {
+    const receipt = await startNewUfoInvasionGameMethod
+      .send({
+        from: walletAddress,
+        to: moreMissilesPlzAddress,
+        gas: await startNewUfoInvasionGameMethod.estimateGas(),
+        nonce: await web3.eth.getTransactionCount(walletAddress, "pending"),
+        chainId: 1088
+      });
+}
 
-const receipt = await startNewUfoInvasionGameMethod
-  .send({
-    from: walletAddress,
-    to: moreMissilesPlzAddress,
-    gas: await startNewUfoInvasionGameMethod.estimateGas(),
-    nonce: await web3.eth.getTransactionCount(walletAddress, "pending"),
-    chainId: 1088
-  });
 ```
 
 ## General Methods for Querying State
