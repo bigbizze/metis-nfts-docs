@@ -7,9 +7,11 @@ The only other one is WorldLeader.sol which is used for Minting.
 All events are emitted with the MoreMissilesPlz contract.
 
 ## Latest Rinkeby Contract Addresses
-`MoreMissilesPlz :: 0xa089c402bC4318b085EBC4eE1Fdc229Cc6eC9010`
+> MoreMissilesPlz:
+`0xA5017ebE5c1654a84397981e675Cc0de42C7D96e`
 
-`BidenWorldLeader :: 0x49351b3873155d02b7F866e30A65Cbe80De879F2`
+> BidenWorldLeader:
+`0xc6387D85dB6b7AaD9579f662F202E55c8FC413e3`
 
 ## Intro
 initialize the MoreMissilePlz contract like
