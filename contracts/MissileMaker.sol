@@ -45,7 +45,6 @@ contract MissileMaker is BaseNft {
             uint dmg = rollMissileDmg(randVal, i);
             _missileDmgLookup[missileNftId] = dmg;
             MoreMissilesPlz(mainContract()).emitMissileCreated(sender, leaderNftIds, missileNftId, dmg);
-
         }
     }
 

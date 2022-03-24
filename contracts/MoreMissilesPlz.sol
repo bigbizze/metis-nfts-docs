@@ -158,7 +158,6 @@ contract MoreMissilesPlz is Ownable {
     // ############################################################
     // functions for getting data about the ufo invasion game state
     //
-
     function getCurGameNumUFOs() public view returns (uint) {
         return _ufoInvasion.getCurGameNumUFOs();
     }
@@ -194,7 +193,6 @@ contract MoreMissilesPlz is Ownable {
     // ############################################################
     // events
     //
-
     event MissileCreated(address owner, uint[] leaderNftIds, uint missileNftId, uint damage);
     event UfoDestroyed(uint ufoId, uint missileId, address locationAddress, address killerAddress);
     event GameOver(uint gameNumber, uint totalUfoHp, uint[] ufoIds, address winner, uint gameLengthinSeconds, uint gameStartTimeinSeconds);

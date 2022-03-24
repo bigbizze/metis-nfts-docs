@@ -17,6 +17,15 @@ contract MetisERC721 is ERC721Enumerable, OwnableOrMainContract {
     uint public constant MAX_SUPPLY = 10000;
     uint public constant PRICE = 0.01 ether;
     uint public constant MAX_PER_MINT = 21;
+    uint public constant WHITELIST_MAX_AMOUNT = 5;
+
+    enum ReleaseStatus {
+        Unreleased,
+        Whitelist,
+        Released
+    }
+
+    ReleaseStatus public _releaseStatus = ReleaseStatus.Unreleased;
 
     uint _balance = 0;
 
@@ -29,7 +38,7 @@ contract MetisERC721 is ERC721Enumerable, OwnableOrMainContract {
     constructor(string memory name, string memory symbol) ERC721(name, symbol) {}
 
     mapping(address => bool) _freeMintLookup;
-    mapping(address => bool) _isWhiteListed;
+    mapping(address => uint) _whitelistRemaining;
 
     function reserveNFTs() public onlyOwner {
         uint totalMinted = _tokenIdx.current();
@@ -53,7 +62,19 @@ contract MetisERC721 is ERC721Enumerable, OwnableOrMainContract {
     }
 
     function _mintNFTs(uint _count) public payable {
+        require(_releaseStatus != ReleaseStatus.Unreleased, "this is not yet released!");
+        if (_releaseStatus == ReleaseStatus.Whitelist) {
+            require(_whitelistRemaining[msg.sender] != 0, "you have no whitelisted mints remaining!");
+            // while the whitelist period is still active, if they try to request more than their allowed amount
+            // whitelist amount, set the amount to the remainder of their whitelist instead
+            if (_count > _whitelistRemaining[msg.sender]) {
+                _count = _whitelistRemaining[msg.sender];
+            }
+            _whitelistRemaining[msg.sender] = _whitelistRemaining[msg.sender].sub(_count);
+        }
+
         uint totalMinted = _tokenIdx.current();
+
         uint counter;
 
         if (_count == 10) {
@@ -65,7 +86,7 @@ contract MetisERC721 is ERC721Enumerable, OwnableOrMainContract {
         }
 
         require(totalMinted.add(counter) <= MAX_SUPPLY, "Not enough NFTs left!");
-        require(_count > 0 && _count <= MAX_PER_MINT, "Wrong number");
+        require(_count > 0 && _count <= MAX_PER_MINT, "count is empty!");
 
         uint priceNeeded = _freeMintLookup[msg.sender] ? PRICE.mul(_count - 1) : PRICE.mul(_count);
         _freeMintLookup[msg.sender] = false;
@@ -147,5 +168,23 @@ contract MetisERC721 is ERC721Enumerable, OwnableOrMainContract {
         for (uint i = 0; i < addresses.length; i++) {
             _freeMintLookup[addresses[i]] = true;
         }
+    }
+
+    function numWhitelistMintsRemaining(address addr) public view returns (uint) {
+        return _whitelistRemaining[addr];
+    }
+
+    function addAddressesForWhitelist(address[] memory addresses) public onlyOwnerOrMain {
+        for (uint i = 0; i < addresses.length; i++) {
+            _whitelistRemaining[addresses[i]] = WHITELIST_MAX_AMOUNT;
+        }
+    }
+
+    function getReleaseStatus() public view returns (ReleaseStatus) {
+        return _releaseStatus;
+    }
+
+    function setReleaseStatus(ReleaseStatus releaseStatus) public onlyOwnerOrMain {
+        _releaseStatus = releaseStatus;
     }
 }

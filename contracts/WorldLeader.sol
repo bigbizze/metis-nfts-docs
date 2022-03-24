@@ -24,8 +24,6 @@ contract WorldLeader is MetisERC721 {
         uint[] leaderNftIds;
     }
 
-//    mapping(uint => uint) _leaderLevel;
-
     constructor(
         string memory name,
         address leaderStoreAddress,
@@ -34,7 +32,6 @@ contract WorldLeader is MetisERC721 {
         leaderName = name;
         _leaderStoreAddress = leaderStoreAddress;
         _missileMaker = missileMaker;
-
     }
 
     function mintNFTs(uint count) public payable {
