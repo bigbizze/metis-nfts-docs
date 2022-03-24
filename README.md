@@ -177,46 +177,55 @@ const receipt = await startNewUfoInvasionGameMethod
 ```solidity
 // solidity
 function isGameActive() public view returns (bool) {
-    return _ufoInvasion.isGameActive();
+    return _gameActive;
 }
 
-function getUserMissiles(address userAddr) public view returns (uint[] memory) {
-    return _missileMaker.getUserMissiles(userAddr);
+function getUserMissiles(address userAddr) external view returns (uint[] memory) {
+    return tokensOfOwner(userAddr);
 }
 
 // functions for getting data about the ufo invasion game state
 //
 
-function getCurGameNumUFOs() public view returns (uint) {
-    return _ufoInvasion.getCurGameNumUFOs();
+function getGameStartTime() public view returns (uint) {
+    return _gameStartTime;
 }
 
-function getUfoAtIdx(uint idx) public view returns (UfoInvasion.UfoState memory) {
-    return _ufoInvasion.getUfoAtIdx(idx);
+function getCurGameNumUFOs() external view returns (uint) {
+    return _numUfosInGame;
 }
 
-function getCurGameNumPlayers() public view returns (uint) {
-    return _ufoInvasion.getCurGameNumPlayers();
+function getUfoAtIdx(uint idx) external view returns (UfoState memory) {
+    require(idx < _curUFOs.length, "there are not that many ufos in the current game!");
+    return _curUFOs[idx];
 }
 
-function getCurGamePlayerAtIdx(uint idx) public view returns (UfoInvasion.CurGameScore memory) {
-    return _ufoInvasion.getCurGamePlayerAtIdx(idx);
+function getCurGameNumPlayers() external view returns (uint) {
+    return _numPlayersWithScoreInGame;
 }
 
-function getNumLeaderboardPlayers() public view returns (uint) {
-    return _ufoInvasion.getNumLeaderboardPlayers();
+function getCurGamePlayerAtIdx(uint idx) external view returns (CurGameScore memory) {
+    require(_curGamePlayerScoreLookup[_curGameAddresses[idx]].active, "this player has not yet played the current game!");
+    return _curGamePlayerScoreLookup[_curGameAddresses[idx]];
 }
 
-function getLeaderboardPlayerAtIdx(uint idx) public view returns (UfoInvasion.AllTimeLeaderboard memory) {
-    return _ufoInvasion.getLeaderboardPlayerAtIdx(idx);
+function getNumLeaderboardPlayers() external view returns (uint) {
+    return _numPlayersOnLeaderboard;
+}
+
+function getLeaderboardPlayerAtIdx(uint idx) external view returns (AllTimeLeaderboard memory) {
+    require(idx < _allTimeLeaderboardAddresses.length, "there is no leaderboard entry at this index!");
+    require(_allTimeLeaderboardLookup[_allTimeLeaderboardAddresses[idx]].exists, "this player has never scored any points before!");
+    return _allTimeLeaderboardLookup[_allTimeLeaderboardAddresses[idx]];
 }
 
 function getTotalNumberOfGames() public view returns (uint) {
-    return _ufoInvasion.getTotalNumberOfGames();
+    return _totalNumGamesPlayed;
 }
 
-function getGameStatsByGameIdx(uint idx) public view returns (UfoInvasion.GameStats memory) {
-    return _ufoInvasion.getGameStatsByGameIdx(idx);
+function getGameStatsByGameIdx(uint idx) public view returns (GameStats memory) {
+    require(idx < _gameStats.length, "there have no been that many games yet!");
+    return _gameStats[idx];
 }
 ```
 
