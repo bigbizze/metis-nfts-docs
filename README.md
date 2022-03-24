@@ -25,7 +25,10 @@ here are some helpers for removing all of the garbage from solidity data queries
 ```ts
 // typescript
 const getNamedValsFromObj = <T>(obj: T): T =>
-  Object.assign({}, ...Object.entries(obj).filter(([key,]) => Number.isNaN(Number(key))).map(([key, val]) => ({[key]: val})))
+  Object.assign({}, ...Object.entries(obj)
+    .filter(([key,]) => Number.isNaN(Number(key)))
+    .map(([key, val]) => ({[key]: (typeof val === "string" && !val.startsWith("0x") && !Number.isNaN(Number(val)) ? Number(val) : val)}))
+  )
 
 type HasReturnValsProp<T> = { returnValues: T };
 
