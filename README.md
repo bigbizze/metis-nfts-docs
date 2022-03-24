@@ -205,6 +205,7 @@ function getCurGameNumPlayers() external view returns (uint) {
 }
 
 function getCurGamePlayerAtIdx(uint idx) external view returns (CurGameScore memory) {
+    require(idx < _curGameAddresses.length, "there is no leaderboard entry at this index!");
     require(_curGamePlayerScoreLookup[_curGameAddresses[idx]].active, "this player has not yet played the current game!");
     return _curGamePlayerScoreLookup[_curGameAddresses[idx]];
 }
