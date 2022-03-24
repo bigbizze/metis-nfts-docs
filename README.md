@@ -30,7 +30,7 @@ const getNamedValsFromObj = <T>(obj: T): T =>
 type HasReturnValsProp<T> = { returnValues: T };
 
 const hasReturnVals = <T>(obj: T | HasReturnValsProp<T>): obj is HasReturnValsProp<T> =>
-  (obj as any).hasOwnProperty("returnVals");
+  (obj as any).hasOwnProperty("returnValues");
 
 const getNamedProps = <T>(events: T[] | HasReturnValsProp<T>[]) =>
   events.map(x => hasReturnVals(x) ? x.returnValues : x).map(getNamedValsFromObj);
