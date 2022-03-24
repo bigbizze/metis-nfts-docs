@@ -81,7 +81,7 @@ console.log(events);
 
 ```solidity
 // solidity
-function attackUFO(uint missileId, uint ufoId) public
+function attackUFO(uint[] memory missileId, uint ufoId) public
 ```
 
 ```ts
@@ -98,12 +98,10 @@ const userMissiles = (await moreMissilesPlzContract.methods.getUserMissiles(addr
   .call({ from: address, value: "0x00" }))
   .map((x: string) => Number(x));
 
-// the NFT id of their first missile
-const missileId = userMissiles[0];
 // the address of the person who was randomly airdropped a UFO for this match
-const ufoLocation = gameUfosBefore[0].locationAddress;
+const ufoId = gameUfosBefore[0].ufoId;
   
-const attackUfoMethod = moreMissilesPlzContract.methods.attackUFO(missileId, ufoLocation);
+const attackUfoMethod = moreMissilesPlzContract.methods.attackUFO(userMissiles, ufoId);
 const receipt = await attackUfoMethod
   .send({
     from: walletAddress,
@@ -176,6 +174,10 @@ const receipt = await startNewUfoInvasionGameMethod
 ## General Methods for Querying State
 ```solidity
 // solidity
+function isGameActive() public view returns (bool) {
+    return _ufoInvasion.isGameActive();
+}
+
 function getUserMissiles(address userAddr) public view returns (uint[] memory) {
     return _missileMaker.getUserMissiles(userAddr);
 }
@@ -195,24 +197,16 @@ function getCurGameNumPlayers() public view returns (uint) {
     return _ufoInvasion.getCurGameNumPlayers();
 }
 
-function getCurGamePlayerAtIdx(uint idx) public view returns (address) {
+function getCurGamePlayerAtIdx(uint idx) public view returns (UfoInvasion.CurGameScore memory) {
     return _ufoInvasion.getCurGamePlayerAtIdx(idx);
-}
-
-function getCurGamePlayerScore(address playerAddr) public view returns (UfoInvasion.CurGameScore memory) {
-    return _ufoInvasion.getCurGamePlayerScore(playerAddr);
 }
 
 function getNumLeaderboardPlayers() public view returns (uint) {
     return _ufoInvasion.getNumLeaderboardPlayers();
 }
 
-function getLeaderboardPlayerAtIdx(uint idx) public view returns (address) {
+function getLeaderboardPlayerAtIdx(uint idx) public view returns (UfoInvasion.AllTimeLeaderboard memory) {
     return _ufoInvasion.getLeaderboardPlayerAtIdx(idx);
-}
-
-function getLeaderboardPlayerScore(address playerAddr) public view returns (UfoInvasion.AllTimeLeaderboard memory) {
-    return _ufoInvasion.getLeaderboardPlayerScore(playerAddr);
 }
 
 function getTotalNumberOfGames() public view returns (uint) {
@@ -226,34 +220,41 @@ function getGameStatsByGameIdx(uint idx) public view returns (UfoInvasion.GameSt
 
 most of these are meant to be used by querying the total number of items in an array, meaning u can iterate up to this number, and use the index of your loop to then query an array item or mapping with more complex state.
 
-for e.g., to generate a list of the stats of all of the active UFOs in the current game
+getting data about the game:
 
 ```ts
 // typescript
-type GameUfo = {
-  address: string,
-  ufoId: number,
-  curHp: number,
-  startingHp: number
+// #####################################################
+
+type CurGamePlayer = {
+  playerAddress: string,
+  score: number,
+  nukesUsed: number,
+  active: number
 };
 
-const curGameNumUFOs = Number(
-  await moreMissilesPlzContract.methods.getCurGameNumUFOs()
-    .call({ from: address, value: "0x00" })
-);
-const gameUfos: GameUfo[] = [];
-for (let i = 0; i < curGameNumUFOs; i++) {
-  gameUfos.push(
-    await moreMissilesPlzContract.methods.getUfoAtIdx(i)
-      .call({ from: address, value: "0x00" })
-  )
-}
-```
+const getCurGameData = async (): Promise<CurGamePlayer[]> => {
+  const idx = Number(
+    await moreMissilesPlzContract.methods.getCurGameNumPlayers()
+      .call({ from: wallet.address, value: "0x00" })
+  );
+  const data: CurGamePlayer[] = [];
+  for (let i = 0; i < idx; i++) {
+    data.push(
+      await moreMissilesPlzContract.methods.getCurGamePlayerAtIdx(i)
+        .call({ from: wallet.address, value: "0x00" })
+    )
+  }
+  return data.map(x => ({
+    playerAddress: x.playerAddress,
+    score: Number(x.score),
+    nukesUsed: Number(x.nukesUsed),
+    active: x.active
+  }));
+};
 
-or for querying the all-time leaderboard data
+// #####################################################
 
-```ts
-// typescript
 type LeaderboardPlayer = {
   playerAddress: string,
   score: number,
@@ -261,19 +262,56 @@ type LeaderboardPlayer = {
   nukesUsed: number,
   exists: boolean
 };
-
-const numLeaderboardPlayers = Number(
+const getLeaderboard = async (): Promise<LeaderboardPlayer[]> => {
+  const idx = Number(
     await moreMissilesPlzContract.methods.getNumLeaderboardPlayers()
-      .call({ from: address, value: "0x00" })
-);
+      .call({ from: wallet.address, value: "0x00" })
+  );
+  const data: LeaderboardPlayer[] = [];
+  for (let i = 0; i < idx; i++) {
+    data.push(
+      await moreMissilesPlzContract.methods.getLeaderboardPlayerAtIdx(i)
+        .call({ from: wallet.address, value: "0x00" })
+    )
+  }
+  return data.map(x => ({
+    playerAddress: x.playerAddress,
+    score: Number(x.score),
+    wins: Number(x.wins),
+    nukesUsed: Number(x.nukesUsed),
+    exists: x.exists
+  }));
+};
 
-const leaderBoardPlayers: LeaderboardPlayer[] = [];
-for (let i = 0; i < numLeaderboardPlayers; i++) {
-  leaderBoardPlayers.push(
-    await moreMissilesPlzContract.methods.getLeaderboardPlayerAtIdx(i)
-      .call({ from: address, value: "0x00" })
-  )
-}
+// #####################################################
 
-console.log(leaderBoardPlayers);
+type GameUfo = {
+  locationAddress: string,
+  ufoId: number,
+  curHp: number,
+  startingHp: number
+};
+const getGameUfos = async (
+  address: string
+): Promise<GameUfo[]> => {
+  const curGameNumUFOs = Number(
+    await ufoInvasionContract.methods.getCurGameNumUFOs()
+      .call({ from: address, value: "0x00" })
+  );
+  const gameUfos: GameUfo[] = [];
+  for (let i = 0; i < curGameNumUFOs; i++) {
+    gameUfos.push(
+      await ufoInvasionContract.methods.getUfoAtIdx(i)
+        .call({ from: address, value: "0x00" })
+    )
+  }
+  return gameUfos.map(x => ({
+    locationAddress: x.locationAddress,
+    ufoId: x.ufoId,
+    curHp: Number(x.curHp),
+    startingHp: Number(x.startingHp)
+  }));
+};
+
+// #####################################################
 ```
