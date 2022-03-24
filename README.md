@@ -152,17 +152,8 @@ console.log(events);
 
 ```solidity
 // solidity
-
-struct GameStats {
-    uint gameNumber;
-    uint totalUfoHp;
-    uint numUFOs;
-    address winner;
-    uint gameLengthInSeconds;
-    uint gameStartTimeInSeconds;
-}
     
-event GameOver(GameStats gameStats);
+event GameOver(uint gameNumber, uint totalUfoHp, uint[] ufoIds, address winner, uint gameLengthinSeconds, uint gameStartTimeinSeconds);
 ```
 
 whenever a match is finished (every UFO has 0 health left), the `GameOver` event is emitted
