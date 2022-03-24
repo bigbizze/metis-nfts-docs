@@ -50,7 +50,7 @@ this method returns the contract address for the WorldLeader by name. you can us
 ```ts
 // typescript
 const worldLeaderMintAddress = await moreMissilesPlzContract.methods.getWorldLeaderMintContract("Biden")
-  .call({ from: wallet.address, value: "0x0" });
+  .call({ from: walletAddress, value: "0x0" });
 
 const worldLeaderMintContract = new web3.eth.Contract(
     worldLeaderAbi.abi as any,
@@ -79,7 +79,7 @@ function maybeGetMissiles(uint randVal) public
 // typescript
 const maybeGetMissileMethod = moreMissilesPlzContract.methods.maybeGetMissiles(getRandomInt(1, 100000))
 
-const numMissilesReadyToRoll = await moreMissilesPlzContract.methods.numMissilesReadyToRoll().call({ from: address, value: "0x00" });
+const numMissilesReadyToRoll = await moreMissilesPlzContract.methods.numMissilesReadyToRoll().call({ from: walletAddress, value: "0x00" });
       
 if (numMissilesReadyToRoll > 0) {
     const receipt = await maybeGetMissileMethod
@@ -119,12 +119,12 @@ function attackUFO(uint[] memory missileId, uint ufoId) public
 // get the number of UFOs in the current game
 const curGameNumUFOs = Number(
   await moreMissilesPlzContract.methods.getCurGameNumUFOs()
-    .call({ from: address, value: "0x00" })
+    .call({ from: walletAddress, value: "0x00" })
 );
 
 // get all the missiles the user owns (this might be better as the user selecting which ones to use themselves)
 const userMissiles = (await moreMissilesPlzContract.methods.getUserMissiles(address)
-  .call({ from: address, value: "0x00" }))
+  .call({ from: walletAddress, value: "0x00" }))
   .map((x: string) => Number(x));
 
 // the address of the person who was randomly airdropped a UFO for this match
@@ -179,7 +179,7 @@ this should probably be called when you receive a `GameOver` event
 
 ```ts
 // typescript
-const isGameActive = await moreMissilesPlzContract.methods.isGameActive().call({ from: wallet.address, value: "0x0" });
+const isGameActive = await moreMissilesPlzContract.methods.isGameActive().call({ from: walletAddress, value: "0x0" });
 const startNewUfoInvasionGameMethod = moreMissilesPlzContract.methods.startNewUfoInvasionGame(getRandomInt(1, 10000));
 if (!isGameActive) {
     const receipt = await startNewUfoInvasionGameMethod
@@ -267,16 +267,18 @@ type CurGamePlayer = {
   active: number
 };
 
-const getCurGameData = async (): Promise<CurGamePlayer[]> => {
+const getCurGameData = async (
+    walletAddress: string
+): Promise<CurGamePlayer[]> => {
   const idx = Number(
     await moreMissilesPlzContract.methods.getCurGameNumPlayers()
-      .call({ from: wallet.address, value: "0x00" })
+      .call({ from: walletAddress, value: "0x00" })
   );
   const data: CurGamePlayer[] = [];
   for (let i = 0; i < idx; i++) {
     data.push(
       await moreMissilesPlzContract.methods.getCurGamePlayerAtIdx(i)
-        .call({ from: wallet.address, value: "0x00" })
+        .call({ from: walletAddress, value: "0x00" })
     )
   }
   return getNamedProps(data);
@@ -291,16 +293,18 @@ type LeaderboardPlayer = {
   nukesUsed: number,
   exists: boolean
 };
-const getLeaderboard = async (): Promise<LeaderboardPlayer[]> => {
+const getLeaderboard = async (
+    walletAddress: string
+): Promise<LeaderboardPlayer[]> => {
   const idx = Number(
     await moreMissilesPlzContract.methods.getNumLeaderboardPlayers()
-      .call({ from: wallet.address, value: "0x00" })
+      .call({ from: walletAddress, value: "0x00" })
   );
   const data: LeaderboardPlayer[] = [];
   for (let i = 0; i < idx; i++) {
     data.push(
       await moreMissilesPlzContract.methods.getLeaderboardPlayerAtIdx(i)
-        .call({ from: wallet.address, value: "0x00" })
+        .call({ from: walletAddress, value: "0x00" })
     )
   }
   return getNamedProps(data);
@@ -315,17 +319,17 @@ type GameUfo = {
   startingHp: number
 };
 const getGameUfos = async (
-  address: string
+  walletAddress: string
 ): Promise<GameUfo[]> => {
   const curGameNumUFOs = Number(
     await ufoInvasionContract.methods.getCurGameNumUFOs()
-      .call({ from: address, value: "0x00" })
+      .call({ from: walletAddress, value: "0x00" })
   );
   const data: GameUfo[] = [];
   for (let i = 0; i < curGameNumUFOs; i++) {
     data.push(
       await ufoInvasionContract.methods.getUfoAtIdx(i)
-        .call({ from: address, value: "0x00" })
+        .call({ from: walletAddress, value: "0x00" })
     )
   }
   return getNamedProps(data);
