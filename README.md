@@ -4,6 +4,8 @@ MoreMissilesPlz.sol contract is the main Contract to use for this
 
 The only other one is WorldLeader.sol which is used for Minting.
 
+All events are emitted with the MoreMissilesPlz contract.
+
 ## Intro
 initialize the MoreMissilePlz contract like
 ```ts
@@ -73,7 +75,7 @@ event MissileCreated(address owner, uint[] leaderNftIds, uint missileNftId, uint
 
 ```ts
 // typescript
-const events = await worldLeaderContract.getPastEvents("MissileCreated", { fromBlock: 0 });
+const events = await moreMissilesPlzContract.getPastEvents("MissileCreated", { fromBlock: 0 });
 console.log(events);
 ```
 
@@ -121,7 +123,7 @@ whenever a UFO is destroyed by any player, the `UfoDestroyed` event is emitted
 
 ```ts
 // typescript
-const events = await worldLeaderContract.getPastEvents("UfoDestroyed", { fromBlock: 0 });
+const events = await moreMissilesPlzContract.getPastEvents("UfoDestroyed", { fromBlock: 0 });
 console.log(events);
 ```
 
@@ -137,7 +139,7 @@ struct GameStats {
     uint gameStartTimeInSeconds;
 }
     
-event GameOver(address winnerAddress, GameStats gameStats);
+event GameOver(GameStats gameStats);
 ```
 
 whenever a match is finished (every UFO has 0 health left), the `GameOver` event is emitted
@@ -145,7 +147,7 @@ whenever a match is finished (every UFO has 0 health left), the `GameOver` event
 
 ```ts
 // typescript
-const events = await worldLeaderContract.getPastEvents("GameOver", { fromBlock: 0 });
+const events = await moreMissilesPlzContract.getPastEvents("GameOver", { fromBlock: 0 });
 console.log(events);
 ```
 
@@ -298,14 +300,14 @@ const getGameUfos = async (
     await ufoInvasionContract.methods.getCurGameNumUFOs()
       .call({ from: address, value: "0x00" })
   );
-  const gameUfos: GameUfo[] = [];
+  const data: GameUfo[] = [];
   for (let i = 0; i < curGameNumUFOs; i++) {
-    gameUfos.push(
+    data.push(
       await ufoInvasionContract.methods.getUfoAtIdx(i)
         .call({ from: address, value: "0x00" })
     )
   }
-  return gameUfos.map(x => ({
+  return data.map(x => ({
     locationAddress: x.locationAddress,
     ufoId: x.ufoId,
     curHp: Number(x.curHp),
