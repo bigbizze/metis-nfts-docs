@@ -1,0 +1,7 @@
+{
+  "name": "metis-nfts-docs",
+  "version": "1.0.0",
+  "dependencies": {
+    "@openzeppelin/contracts": "^4.4.2"
+  }
+}
