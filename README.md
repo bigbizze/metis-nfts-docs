@@ -21,6 +21,21 @@ const moreMissilesPlzContract = new web3.eth.Contract(
 );
 ```
 
+here are some helpers for removing all of the garbage from solidity data queries and event responses:
+```ts
+// typescript
+const getNamedValsFromObj = <T>(obj: T): T =>
+  Object.assign({}, ...Object.entries(obj).filter(([key,]) => Number.isNaN(Number(key))).map(([key, val]) => ({[key]: val})))
+
+type HasReturnValsProp<T> = { returnValues: T };
+
+const hasReturnVals = <T>(obj: T | HasReturnValsProp<T>): obj is HasReturnValsProp<T> =>
+  (obj as any).hasOwnProperty("returnVals");
+
+const getNamedProps = <T>(events: T[] | HasReturnValsProp<T>[]) =>
+  events.map(x => hasReturnVals(x) ? x.returnValues : x).map(getNamedValsFromObj);
+```
+
 ## Minting
 ```solidity
 // solidity
@@ -80,7 +95,7 @@ event MissileCreated(address owner, uint[] leaderNftIds, uint missileNftId, uint
 
 ```ts
 // typescript
-const events = await moreMissilesPlzContract.getPastEvents("MissileCreated", { fromBlock: 0 });
+const events = getNamedProps(await moreMissilesPlzContract.getPastEvents("MissileCreated", { fromBlock: 0 }));
 console.log(events);
 ```
 
@@ -128,7 +143,7 @@ whenever a UFO is destroyed by any player, the `UfoDestroyed` event is emitted
 
 ```ts
 // typescript
-const events = await moreMissilesPlzContract.getPastEvents("UfoDestroyed", { fromBlock: 0 });
+const events = getNamedProps(await moreMissilesPlzContract.getPastEvents("UfoDestroyed", { fromBlock: 0 }));
 console.log(events);
 ```
 
@@ -152,7 +167,7 @@ whenever a match is finished (every UFO has 0 health left), the `GameOver` event
 
 ```ts
 // typescript
-const events = await moreMissilesPlzContract.getPastEvents("GameOver", { fromBlock: 0 });
+const events = getNamedProps(await moreMissilesPlzContract.getPastEvents("GameOver", { fromBlock: 0 }));
 console.log(events);
 ```
 
@@ -241,6 +256,7 @@ getting data about the game:
 
 ```ts
 // typescript
+
 // #####################################################
 
 type CurGamePlayer = {
@@ -262,12 +278,7 @@ const getCurGameData = async (): Promise<CurGamePlayer[]> => {
         .call({ from: wallet.address, value: "0x00" })
     )
   }
-  return data.map(x => ({
-    playerAddress: x.playerAddress,
-    score: Number(x.score),
-    nukesUsed: Number(x.nukesUsed),
-    active: x.active
-  }));
+  return getNamedProps(data);
 };
 
 // #####################################################
@@ -291,13 +302,7 @@ const getLeaderboard = async (): Promise<LeaderboardPlayer[]> => {
         .call({ from: wallet.address, value: "0x00" })
     )
   }
-  return data.map(x => ({
-    playerAddress: x.playerAddress,
-    score: Number(x.score),
-    wins: Number(x.wins),
-    nukesUsed: Number(x.nukesUsed),
-    exists: x.exists
-  }));
+  return getNamedProps(data);
 };
 
 // #####################################################
@@ -322,13 +327,9 @@ const getGameUfos = async (
         .call({ from: address, value: "0x00" })
     )
   }
-  return data.map(x => ({
-    locationAddress: x.locationAddress,
-    ufoId: x.ufoId,
-    curHp: Number(x.curHp),
-    startingHp: Number(x.startingHp)
-  }));
+  return getNamedProps(data);
 };
 
 // #####################################################
+
 ```
