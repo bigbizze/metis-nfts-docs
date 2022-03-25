@@ -63,7 +63,7 @@ contract MetisERC721 is ERC721Enumerable, OwnableOrMainContract {
         require(_releaseStatus != ReleaseStatus.Unreleased, "this is not yet released!");
         if (_releaseStatus == ReleaseStatus.Whitelist) {
             require(_whitelistRemaining[msg.sender] != 0, "you have no whitelisted mints remaining!");
-            // while the whitelist period is still active, if they try to request more than their allowed
+            // while the whitelist period is still active, if they try to request more than their allowed amount
             // whitelist amount, set the amount to the remainder of their whitelist instead
             if (_count > _whitelistRemaining[msg.sender]) {
                 _count = _whitelistRemaining[msg.sender];

@@ -14,6 +14,16 @@ library Helpers {
         return uniqueHolders;
     }
 
+    function shuffle(uint blockTimestamp, uint randVal, uint[] memory uniqueHolders) internal pure returns (uint[] memory) {
+        for (uint256 i = 0; i < uniqueHolders.length; i++) {
+            uint256 n = i.add(uint256(keccak256(abi.encodePacked(blockTimestamp, randVal, i))).mod(uniqueHolders.length.sub(i)));
+            uint temp = uniqueHolders[n];
+            uniqueHolders[n] = uniqueHolders[i];
+            uniqueHolders[i] = temp;
+        }
+        return uniqueHolders;
+    }
+
     function uint2str(uint256 _i) internal pure returns (string memory str) {
         if (_i == 0) {
             return "0";
@@ -64,7 +74,7 @@ library Helpers {
     }
 
     function subSafe(uint this_, uint by) internal pure returns (uint) {
-        if (by > this_) {
+        if (by >= this_) {
             return 0;
         }
         return this_.sub(by);

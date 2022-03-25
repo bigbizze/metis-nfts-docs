@@ -5,24 +5,46 @@ import "./MissileMaker.sol";
 import "./UfoInvasion.sol";
 import "./WorldLeader.sol";
 import "./LeaderStore.sol";
+import "./Helpers.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // main client interface for the project
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 contract MoreMissilesPlz is Ownable {
+    using Helpers for uint;
+    using SafeMath for uint;
+
     MissileMaker internal _missileMaker;
     LeaderStore internal _leaderStore;
     UfoInvasion internal _ufoInvasion;
 
+    uint private _usesOfRand;
+    uint private _randVal;
+    uint private _ufoAttackedEventNum;
+
     constructor(
+        uint randVal,
         LeaderStore leaderStore,
         MissileMaker missileMaker,
         UfoInvasion ufoInvasion
     ) {
+        _randVal = randVal;
         _leaderStore = leaderStore;
         _missileMaker = missileMaker;
         _ufoInvasion = ufoInvasion;
+    }
+
+    function getRandVal() external returns (uint) {
+        require(msg.sender == address(_ufoInvasion), "getRandVal :: you can't do that!");
+        _usesOfRand++;
+        return _randVal.add(_usesOfRand);
+    }
+
+    function setRandVal(uint newRandVal) private {
+        _usesOfRand = 0;
+        _randVal = newRandVal;
     }
 
     function getWorldLeaderMintContract(string memory leaderName) public view returns (address) {
@@ -51,6 +73,7 @@ contract MoreMissilesPlz is Ownable {
     // method for users to call when they want to roll for a chance at getting a missile
     //
     function maybeGetMissiles(uint randVal) public {
+        setRandVal(randVal);
         WorldLeader[] memory leaders = _leaderStore.getLeaders();
         for (uint i = 0; i < leaders.length; i++) {
             if (leaders[i].doesUserOwnAnyOfThisWorldLeader(msg.sender)) {
@@ -70,6 +93,7 @@ contract MoreMissilesPlz is Ownable {
     // starts a new ufo invasion game match
     //
     function startNewUfoInvasionGame(uint randVal) public onlyOwner {
+        setRandVal(randVal);
         _ufoInvasion.startNewUfoInvasionGame(randVal);
     }
 
@@ -77,12 +101,22 @@ contract MoreMissilesPlz is Ownable {
     //
     function attackUFO(uint[] memory missileIds, uint ufoId) public {
         for (uint i = 0; i < missileIds.length; i++) {
-            bool ufoTargetDead = _ufoInvasion.attackUFO(msg.sender, missileIds[i], ufoId);
+            UfoInvasion.AttackUfoResult attackUfoResult = _ufoInvasion.attackUFO(msg.sender, missileIds[i], ufoId);
             _missileMaker.burnMissile(missileIds[i]);
-            if (ufoTargetDead) {
+            if (attackUfoResult == UfoInvasion.AttackUfoResult.UfoDestroyedAndGameOver || attackUfoResult == UfoInvasion.AttackUfoResult.UfoDestroyed) {
                 break;
             }
         }
+        _ufoAttackedEventNum++;
+    }
+
+    function attackRandomUFOs(uint randVal, uint[] memory missileIds, uint amountUFOs) public {
+        setRandVal(randVal);
+        _ufoInvasion.attackRandomUFOs(msg.sender, randVal, missileIds, amountUFOs);
+        for (uint i = 0; i < missileIds.length; i++) {
+            _missileMaker.burnMissile(missileIds[i]);
+        }
+        _ufoAttackedEventNum++;
     }
 
     function getUfoInvasionAddress() public view returns (address) {
@@ -193,25 +227,36 @@ contract MoreMissilesPlz is Ownable {
     // ############################################################
     // events
     //
-    event MissileCreated(address owner, uint[] leaderNftIds, uint missileNftId, uint damage);
+    event NewGame(uint gameNum, address[] locations, uint totalUfoHp,uint gameStartTimeInSeconds);
+    event MissileCreated(address owner, uint[] leaderNftIds, uint missileNftId, uint dmg);
     event UfoDestroyed(uint ufoId, uint missileId, address locationAddress, address killerAddress);
+    event MissileAttackedUFO(uint missileAttackId, address attacker, uint missileId, uint ufoId, address locationAddress, uint dmg, uint hpBefore, uint hpAfter);
     event GameOver(uint gameNumber, uint totalUfoHp, uint[] ufoIds, address winner, uint gameLengthinSeconds, uint gameStartTimeinSeconds);
 
+    function emitNewGame(uint gameNum, address[] calldata locations, uint totalUfoHp, uint gameStartTimeInSeconds) external {
+        require(msg.sender == address(_ufoInvasion), "emitNewGame :: you can't do that");
+        emit NewGame(gameNum, locations, totalUfoHp, gameStartTimeInSeconds);
+    }
+
     function emitMissileCreated(address sender, uint[] calldata leaderNftIds, uint missileNftId, uint dmg) external {
-        require(msg.sender == address(_missileMaker), "you can't do that");
+        require(msg.sender == address(_missileMaker), "emitMissileCreated :: you can't do that");
         emit MissileCreated(sender, leaderNftIds, missileNftId, dmg);
     }
 
     function emitUfoDestroyed(uint ufoId, uint missileId, address locationAddress, address killerAddress) external {
-        require(msg.sender == address(_ufoInvasion), "you can't do that");
+        require(msg.sender == address(_ufoInvasion), "emitUfoDestroyed :: you can't do that");
         emit UfoDestroyed(ufoId, missileId, locationAddress, killerAddress);
     }
 
     function emitGameOver(UfoInvasion.GameStats calldata gameStats) external {
-        require(msg.sender == address(_ufoInvasion), "you can't do that");
+        require(msg.sender == address(_ufoInvasion), "emitGameOver :: you can't do that");
         emit GameOver(gameStats.gameNumber, gameStats.totalUfoHp, gameStats.ufoIds, gameStats.winner, gameStats.gameLengthInSeconds, gameStats.gameStartTimeInSeconds);
     }
 
+    function emitMissileAttackedUFO(address attacker, uint missileId, uint ufoId, address locationAddress, uint dmg, uint hpBefore, uint hpAfter) external {
+        require(msg.sender == address(_ufoInvasion), "emitMissileAttackedUFO :: you can't do that");
+        emit MissileAttackedUFO(_ufoAttackedEventNum, attacker, missileId, ufoId, locationAddress, dmg, hpBefore, hpAfter);
+    }
     // ############################################################
     // if you need to change contract for the game (make sure you've mapped the data from the existing one first)
     //
