@@ -1,5 +1,8 @@
 # metis-nfts
 
+----
+
+
 MoreMissilesPlz.sol contract is the main Contract to use for this
 
 The only other one is WorldLeader.sol which is used for Minting.
@@ -18,6 +21,9 @@ All events are emitted with the MoreMissilesPlz contract.
 ----
 
 ## Intro
+
+----
+
 initialize the MoreMissilePlz contract like
 ```ts
 // typescript
@@ -46,6 +52,9 @@ const getNamedProps = <T>(events: T[] | HasReturnValsProp<T>[]) =>
 ```
 ----
 ## Minting & WorldLeader Methods
+
+----
+
 ```solidity
 // solidity
 function getWorldLeaderMintContract(string memory leaderName) public view returns (address);
@@ -100,6 +109,9 @@ if (curReleaseStatus === ReleaseStatus.Whitelisted) {
 ----
 
 ## Rolling Missiles
+
+----
+
 ```solidity
 // solidity
 function maybeGetMissiles(uint randVal) public;
@@ -141,6 +153,8 @@ console.log(events);
 ----
 
 ## Attack UFO
+
+----
 
 ### Attack Random UFOs
 
