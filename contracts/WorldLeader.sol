@@ -1,113 +1,188 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.4;
 
-import "./MetisERC721.sol";
-import "./MissileMaker.sol";
-import "./Helpers.sol";
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// a world leader MoreMissilesPlz NFT collection
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-contract WorldLeader is MetisERC721 {
+// this is (mostly) not my code
+
+import "@openzeppelin/contracts/utils/math/SafeMath.sol";
+import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
+import "@openzeppelin/contracts/utils/Counters.sol";
+import "./OwnableOrOwned.sol";
+
+contract WorldLeader is ERC721Enumerable, OwnableOrOwned {
     using SafeMath for uint;
-    using Helpers for uint;
+    using Counters for Counters.Counter;
 
-    string public leaderName;
-    address internal _moreMissilesPlzAddress;
+    Counters.Counter private _tokenIdx;
 
-    mapping(uint => uint) _lastRunLookup;
+    uint public constant MAX_SUPPLY = 10000;
+    uint public constant PRICE = 0.00001 ether;
+    uint public constant MAX_PER_MINT = 21;
+    uint public constant WHITELIST_MAX_AMOUNT = 5;
 
-    MissileMaker internal _missileMaker;
-    address internal _leaderStoreAddress;
-
-    struct MissileOdds {
-        uint numMissilesToMint;
-        uint[] leaderNftIds;
+    enum ReleaseStatus {
+        Unreleased,
+        Whitelist,
+        Released
     }
 
-    constructor(
-        string memory name,
-        address leaderStoreAddress,
-        MissileMaker missileMaker
-    ) MetisERC721(string(abi.encodePacked("World Leader ", name)), "LEADER") {
-        leaderName = name;
-        _leaderStoreAddress = leaderStoreAddress;
-        _missileMaker = missileMaker;
-    }
+    ReleaseStatus public _releaseStatus = ReleaseStatus.Unreleased;
 
-    function mintNFTs(uint count) public payable {
-        _mintNFTs(count);
-    }
+    address payable[] private _recipients;
 
-    function doesUserOwnAnyOfThisWorldLeader(address addr) external view returns (bool) {
-        return balanceOf(addr) > 0;
-    }
+    event SetRecipient(address payable recipient);
 
-    function numMissilesReadyToRoll(address sender) public view returns (uint) {
-        if (balanceOf(sender) == 0) {
-            return 0;
+    string public baseTokenURI;
+
+    constructor() ERC721("BidensRocket", "LEADER") {}
+
+    mapping(address => bool) _freeMintLookup;
+    mapping(address => uint) _whitelistRemaining;
+
+    function reserveNFTs() public onlyOwner {
+        uint totalMinted = _tokenIdx.current();
+
+        require(
+            totalMinted.add(100) < MAX_SUPPLY,
+            "Not enough NFTs left to reserve"
+        );
+
+        for (uint i = 0; i < 100; i++) {
+            _mintSingleNFT();
         }
-        uint[] memory leaderNftIds = tokensOfOwner(sender);
-        uint numReady = 0;
-        for (uint i = 0; i < leaderNftIds.length; i++) {
-            if (_missileMaker.isRollForMissileReady(_lastRunLookup[leaderNftIds[i]])) {
-                numReady++;
+    }
+
+    function _baseURI() internal view virtual override returns (string memory) {
+        return baseTokenURI;
+    }
+
+    function setBaseURI(string memory _baseTokenURI) public onlyOwner {
+        baseTokenURI = _baseTokenURI;
+    }
+
+    function mintNFTs(uint _count) external payable {
+        require(_releaseStatus != ReleaseStatus.Unreleased, "this is not yet released!");
+        if (_releaseStatus == ReleaseStatus.Whitelist) {
+            require(_whitelistRemaining[msg.sender] != 0, "you have no whitelisted mints remaining!");
+            // while the whitelist period is still active, if they try to request more than their allowed amount
+            // whitelist amount, set the amount to the remainder of their whitelist instead
+            if (_count > _whitelistRemaining[msg.sender]) {
+                _count = _whitelistRemaining[msg.sender];
+            }
+            _whitelistRemaining[msg.sender] = _whitelistRemaining[msg.sender].sub(_count);
+        }
+
+        uint totalMinted = _tokenIdx.current();
+
+        uint counter;
+
+        if (_count == 10) {
+            counter = 12;
+        } else if (_count == 17) {
+            counter = 21;
+        } else {
+            counter = _count;
+        }
+
+        require(totalMinted.add(counter) <= MAX_SUPPLY, "Not enough NFTs left!");
+        require(_count > 0 && _count <= MAX_PER_MINT, "count is empty!");
+
+        uint priceNeeded = _freeMintLookup[msg.sender] ? PRICE.mul(_count - 1) : PRICE.mul(_count);
+        _freeMintLookup[msg.sender] = false;
+
+        require(msg.value >= priceNeeded, "Need more Metis");
+
+        for (uint i = 0; i < counter; i++) {
+            _mintSingleNFT();
+        }
+        withdrawAuto(msg.value);
+    }
+
+    function exists(uint nftId) public view returns (bool) {
+        return _exists(nftId);
+    }
+
+    function _mintSingleNFT() private {
+        uint newTokenID = _tokenIdx.current();
+        _safeMint(msg.sender, newTokenID);
+        _tokenIdx.increment();
+    }
+
+    function tokensOfOwner(address _owner) public view returns (uint[] memory) {
+        uint tokenCount = balanceOf(_owner);
+        uint[] memory tokensId = new uint[](tokenCount);
+
+        for (uint i = 0; i < tokenCount; i++) {
+            tokensId[i] = tokenOfOwnerByIndex(_owner, i);
+        }
+
+        return tokensId;
+    }
+
+    function withdrawAuto(uint amount) public {
+        require(_recipients.length > 0, "no recipients have been added to withdraw to!");
+        require(amount > 0, "No ether left to auto withdraw");
+        uint amountPerRecipient = amount.div(_recipients.length);
+        for (uint i = 0; i < _recipients.length; i++) {
+            (bool success, ) = (_recipients[i]).call{ value: amountPerRecipient }("");
+            require(success, "Transfer failed.");
+        }
+    }
+
+    function withdraw() public onlyOwner {
+        require(_recipients.length > 0, "no recipients have been added to withdraw to!");
+        uint balance = address(this).balance;
+        require(balance > 0, "No ether left to withdraw");
+
+        uint amountPerRecipient = balance.div(_recipients.length);
+
+        for (uint i = 0; i < _recipients.length; i++) {
+            (bool success, ) = (_recipients[i]).call{ value: amountPerRecipient }("");
+            require(success, "Transfer failed.");
+        }
+    }
+
+    function isRecipient(address payable recipient) public onlyOwner view returns (bool) {
+        for (uint i = 0; i < _recipients.length; i++) {
+            if (recipient == _recipients[i]) {
+                return true;
             }
         }
-        return numReady;
+        return false;
     }
 
-    function maybeGetMissiles(address sender, uint randVal, uint missilePercChance) public onlyOwnerOrMain returns (MissileOdds memory) {
-        uint[] memory leaderNftIds = tokensOfOwner(sender);
-        uint currentPercentage = 0;
-        uint numMissilesToMint = 0;
-
-        //
-        // increment the % chance of rolling a missile according to the missilePercChance depending on number of NFTs owned.
-        // when this reaches or exceeds 100%, consider this a guaranteed missile for the user and start back at 0 again
-        // for their chance of rolling another one. repeat this for the amount of NFTs they own until you have an
-        // amount of guaranteed missiles, and a % chance of getting one more.
-        //
-        // each unique world leader collection calculates these odds separately.
-        //
-        for (uint i = 0; i < leaderNftIds.length; i++) {
-            require(_exists(leaderNftIds[i]), "this nft does not exist!");
-            require(ownerOf(leaderNftIds[i]) == sender, "you don't own this!");
-            if (_missileMaker.isRollForMissileReady(_lastRunLookup[leaderNftIds[i]])) {
-                _lastRunLookup[leaderNftIds[i]] = block.timestamp;
-                currentPercentage = currentPercentage.add(missilePercChance);
-                if (currentPercentage >= 100) {
-                    numMissilesToMint++;
-                    currentPercentage = currentPercentage.sub(100);
-                }
-            }
+    function setRecipient(address payable recipient) public onlyOwner {
+        if (isRecipient(recipient)) {
+            revert("this recipient already exists");
         }
+        _recipients.push(recipient);
+        emit SetRecipient(recipient);
+    }
 
-        if (userDidRollMissile(randVal, currentPercentage)) {
-            numMissilesToMint++;
+    function hasFreeMint(address addr) public view returns (bool) {
+        return _freeMintLookup[addr];
+    }
+
+    function addAddressesForFreeMint(address[] memory addresses) public onlyOwner {
+        for (uint i = 0; i < addresses.length; i++) {
+            _freeMintLookup[addresses[i]] = true;
         }
-
-        return MissileOdds(numMissilesToMint, leaderNftIds);
     }
 
-    function userDidRollMissile(uint randVal, uint thisMissilePercChance) internal view returns (bool){
-        uint num = uint(randVal.randomize(block.timestamp).modSafe(100));
-        return num <= thisMissilePercChance;
+    function numWhitelistMintsRemaining(address addr) public view returns (uint) {
+        return _whitelistRemaining[addr];
     }
 
-    function getBalance() external view onlyOwnerOrMain returns (uint) {
-        return address(this).balance;
+    function addAddressesForWhitelist(address[] memory addresses) public onlyOwner {
+        for (uint i = 0; i < addresses.length; i++) {
+            _whitelistRemaining[addresses[i]] = WHITELIST_MAX_AMOUNT;
+        }
     }
 
-    // see MoreMissilesPlz.sol bottom section before using
-    //
-    function updateMissileMaker(address newMissileMaker) public {
-        require(msg.sender == _leaderStoreAddress || msg.sender == mainContract() || msg.sender == owner(), "you are not allowed to do that!");
-        _missileMaker = MissileMaker(newMissileMaker);
+    function getReleaseStatus() public view returns (ReleaseStatus) {
+        return _releaseStatus;
     }
 
-    function setMoreMissilesPlzAddress(address to) public onlyOwnerOrMain {
-        _moreMissilesPlzAddress = to;
+    function setReleaseStatus(ReleaseStatus releaseStatus) public onlyOwner {
+        _releaseStatus = releaseStatus;
     }
 }
-
-

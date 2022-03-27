@@ -1,79 +1,52 @@
 # metis-nfts
 
-----
+____
 
-
-MoreMissilesPlz.sol contract is the main Contract to use for this
-
-The only other one is WorldLeader.sol which is used for Minting.
-
-All events are emitted with the MoreMissilesPlz contract.
+### changes from refactor of first version:
+`MoreMissilesPlz.sol` has been removed, we now primarily deal with the `UfoInvasion.sol` contract, and
+`MissileMaker.sol` contract, but also the `WorldLeader.sol` contract when it comes to the Biden / Putin NFTs.
 
 ----
 
 ## Latest Rinkeby Contract Addresses
-> MoreMissilesPlz:
-`0xf86f5c8E6F57BcC5B04D24F87188aD59b45EA2C7`
-
-> BidenWorldLeader:
-`0x3B5791eFF72127E68672Fd2e66F440Da0c4C702d`
+> WorldLeader:
+`0x8D62dE094F5a50434322D25766BDbe7a7Fbfa40e`
+>
+> MissileMaker
+> `0x181b6345E8d71Ab8D1436041Db0B06a4376c8CfE`
+> 
+> UfoInvasion:
+`0x8df9DfA4Db89e3fB2e3AFb84128FbE0b69E6E284`
 
 ----
 
 ## Intro
 
 ----
-
-initialize the MoreMissilePlz contract like
+initialize the contract like
 ```ts
 // typescript
-const moreMissilesPlzContract = new web3.eth.Contract(
-    moreMissilesPlzAbi.abi as any,
-    moreMissilesPlzAddress
+const worldLeaderContract = new web3.eth.Contract(
+  worldLeaderAbi.abi as any,
+  worldLeaderAddress
+);
+const missileMakerContract = new web3.eth.Contract(
+  missileMakerAbi.abi as any,
+  missileMakerAddress
+);
+const ufoInvasionContract = new web3.eth.Contract(
+  ufoInvasionContract.abi as any,
+  ufoInvsaionAddress
 );
 ```
 
-here are some helpers for removing all of the garbage from solidity data queries and event responses:
-```ts
-// typescript
-const getNamedValsFromObj = <T>(obj: T): T =>
-  Object.assign({}, ...Object.entries(obj)
-    .filter(([key,]) => Number.isNaN(Number(key)))
-    .map(([key, val]) => ({[key]: (typeof val === "string" && !val.startsWith("0x") && !Number.isNaN(Number(val)) ? Number(val) : val)}))
-  )
-
-type HasReturnValsProp<T> = { returnValues: T };
-
-const hasReturnVals = <T>(obj: T | HasReturnValsProp<T>): obj is HasReturnValsProp<T> =>
-  (obj as any).hasOwnProperty("returnValues");
-
-const getNamedProps = <T>(events: T[] | HasReturnValsProp<T>[]) =>
-  events.map(x => hasReturnVals(x) ? x.returnValues : x).map(getNamedValsFromObj);
-```
 ----
-## Minting & WorldLeader Methods
+
+## WorldLeader.sol & Minting
 
 ----
 
-```solidity
-// solidity
-function getWorldLeaderMintContract(string memory leaderName) public view returns (address);
-```
-
-this method returns the contract address for the WorldLeader by name. you can use this to mint NFTs for a specific world leader collection like this:
-
-```ts
-// typescript
-const worldLeaderMintAddress = await moreMissilesPlzContract.methods.getWorldLeaderMintContract("Biden")
-  .call({ from: walletAddress, value: "0x0" });
-
-const worldLeaderMintContract = new web3.eth.Contract(
-    worldLeaderAbi.abi as any,
-    worldLeaderMintAddress
-);
-```
-
-then you can mint new NFTs using this like this:
+mint new NFTs like this:
 
 ```ts
 
@@ -108,69 +81,94 @@ if (curReleaseStatus === ReleaseStatus.Whitelisted) {
 ```
 ----
 
-## Rolling Missiles
+## MissileMaker.sol & Rolling for missiles
 
 ----
 
 ```solidity
 // solidity
-function maybeGetMissiles(uint randVal) public;
+function maybeGetMissiles(uint randVal) external;
 ```
 
 ```ts
 // typescript
-const maybeGetMissileMethod = moreMissilesPlzContract.methods.maybeGetMissiles(getRandomInt(1, 100000))
 
-const numMissilesReadyToRoll = await moreMissilesPlzContract.methods.numMissilesReadyToRoll().call({ from: walletAddress, value: "0x00" });
+const numMissilesReadyToRoll = await missileMakerContract.methods.numMissilesReadyToRoll()
+  .call({ from: walletAddress, value: "0x00" });
       
 if (numMissilesReadyToRoll > 0) {
+    const maybeGetMissileMethod = missileMakerContract.methods.maybeGetMissiles(getRandomInt(1, 100000));
     const receipt = await maybeGetMissileMethod
       .send({
         from: walletAddress,
-        to: moreMissilesPlzAddress,
+        to: missileMakerAddress,
         gas: await maybeGetNukeMethod.estimateGas(),
         nonce: await web3.eth.getTransactionCount(walletAddress, "pending"),
         chainId: 1088
       });
 }
 ```
-
 ----
 
-when a missile is created, it emites the `MissileCreated` event
+```solidity
+// solidity
+event MissilesCreated(uint missileCreatedEventId, address createdForAddress);
+```
+
+The `MissilesCreated` event on `MissileMaker.sol` contains a `missileCreatedEventId` prop which can be used to query more complex state.
 
 ```solidity
-  // solidity
-  event MissileCreated(address owner, uint[] leaderNftIds, uint missileNftId, uint damage);
+// solidity
+struct MissileCreatedState {
+    uint16 dmg;
+    uint32 missileCreatedEventId;
+    address owner;
+    uint missileNftId;
+}
+
+function getMissileCreatedInfo(uint missileNftId) public view returns (MissileCreatedState memory);
 ```
 
 ```ts
 // typescript
-const events = getNamedProps(await moreMissilesPlzContract.getPastEvents("MissileCreated", { fromBlock: 0 }));
-console.log(events);
+type MissileCreated = {
+  dmg: number,
+  missileCreatedEventId: number,
+  address: string,
+  missileNftId: number
+};
+
+const getMissileCreatedInfoFromEvent = async (walletAddress: string) => {
+  const missilesCreatedEvents = getNamedProps(await missileMakerContract.getPastEvents("MissilesCreated", { fromBlock: 0 }))
+    .filter(x => x.createdForAddress === walletAddress);
+  const data: MissileCreated[] = [];
+  for (const { missileCreatedEventId, createdForAddress } of missilesCreatedEvents) {
+    data.push(
+      await missileMakerContract.methods.getMissileCreatedInfo(missileCreatedEventId)
+        .call({ from: walletAddress, value: "0x0" })
+    );
+  }
+  return data;
+};
 ```
-
 ----
 
-## Attack UFO
+## UfoInvasion.sol & Attacking UFOs
 
-----
-
-### Attack Random UFOs
+trying to attack a UFO before there are > 100 WorldLeader NFTs minted will fail
+```solidity
+//solidity
+function attackRandomUFOs(uint randVal, uint[] memory missileIds, uint amountUFOs) external;
+```
 
 attack `amountUFOs` random UFOs using `missileIds` missiles (max is 5 missiles)
-
-```solidity
-function attackRandomUFOs(uint randVal, uint[] memory missileIds, uint amountUFOs) public;
-```
-
 ```ts
 // get all the missiles the user owns (this might be better as the user selecting which ones to use themselves)
-const userMissiles = (await moreMissilesPlzContract.methods.getUserMissiles(walletAddress)
+const userMissiles = (await missileMakerContract.methods.getUserMissiles(walletAddress)
   .call({ from: walletAddress, value: "0x00" }))
   .map((x: string) => Number(x));
   
-const attackRandomUfoMethod = moreMissilesPlzContract.methods.attackRandomUFOs(
+const attackRandomUfoMethod = missileMakerContract.methods.attackRandomUFOs(
   getRandomInt(1, 1000),
   userMissiles.slice(0, 4), // first 5 missiles
   3 // amountOfUFOs 
@@ -179,278 +177,146 @@ const attackRandomUfoMethod = moreMissilesPlzContract.methods.attackRandomUFOs(
 const receipt = await attackRandomUfoMethod
   .send({
     from: walletAddress,
-    to: moreMissilesPlzAddress,
+    to: missileMakerAddress,
     gas: await attackRandomUfoMethod.estimateGas(),
     nonce: await web3.eth.getTransactionCount(walletAddress, "pending"),
     chainId: 1088
   });
 
 ```
----
-### Attack one UFO with multiple missiles:
-```solidity
-// solidity
-function attackUFO(uint[] memory missileId, uint ufoId) public;
-```
 
-```ts
-// typescript
+----
 
-// get the number of UFOs in the current game
-const curGameNumUFOs = Number(
-  await moreMissilesPlzContract.methods.getCurGameNumUFOs()
-    .call({ from: walletAddress, value: "0x00" })
-);
-
-// get all the missiles the user owns (this might be better as the user selecting which ones to use themselves)
-const userMissiles = (await moreMissilesPlzContract.methods.getUserMissiles(walletAddress)
-  .call({ from: walletAddress, value: "0x00" }))
-  .map((x: string) => Number(x));
-
-// the address of the person who was randomly airdropped a UFO for this match
-const ufoId = gameUfosBefore[0].ufoId;
-  
-const attackUfoMethod = moreMissilesPlzContract.methods.attackUFO(userMissiles, ufoId);
-const receipt = await attackUfoMethod
-  .send({
-    from: walletAddress,
-    to: moreMissilesPlzAddress,
-    gas: await attackUfoMethod.estimateGas(),
-    nonce: await web3.eth.getTransactionCount(walletAddress, "pending"),
-    chainId: 1088
-  });
-```
-
-```solidity
-event MissileAttackedUFO(uint missileAttackId, address attacker, uint missileId, uint ufoId, address locationAddress, uint dmg, uint hpBefore, uint hpAfter);
-```
-
-whenever a UFO is damaged by a player, the `MissileAttackedUFO` event is emitted. subsequent attacks within the same
-txn will share the same `missileAttackId`
-
-```ts
-// typescript
-const events = getNamedProps(await moreMissilesPlzContract.getPastEvents("UfoDestroyed", { fromBlock: 0 }));
-console.log(events);
-```
-
----
+Start a new UFO invasion game (this should be called by a client when they receive a GameOver) event
+don't worry about multiple clients calling it at the same time, `_gameActive` acts as a mutex for ensuring
+it's only called once at a time. The player who starts the game will be given 5% of the total UFO HP of the game
+they created as score as a reward for paying to start the game.
 
 ```solidity
 // solidity
-event UfoDestroyed(uint ufoId, uint missileId, address locationAddress, address killerAddress);
+function startNewUfoInvasionGame(uint randVal) public;
 ```
-
-whenever a UFO is destroyed by any player, the `UfoDestroyed` event is emitted
 
 ```ts
 // typescript
-const events = getNamedProps(await moreMissilesPlzContract.getPastEvents("UfoDestroyed", { fromBlock: 0 }));
-console.log(events);
-```
+const isGameActive = await ufoInvasionContract.methods.isGameActive()
+  .call({ from: walletAddress, value: "0x0" });
 
----
-
-```solidity
-// solidity
-    
-event GameOver(uint gameNumber, uint totalUfoHp, uint[] ufoIds, address winner, uint gameLengthinSeconds, uint gameStartTimeinSeconds);
-```
-
-whenever a match is finished (every UFO has 0 health left), the `GameOver` event is emitted
-
-
-```ts
-// typescript
-const events = getNamedProps(await moreMissilesPlzContract.getPastEvents("GameOver", { fromBlock: 0 }));
-console.log(events);
-```
-
----
-
-## ~~starting a new game~~
-###THIS IS NO LONGER NECESSARY, GAME WILL AUTO START
-```solidity
-// solidity
-
-event NewGame(uint gameNum, address[] locations, uint totalUfoHp,uint gameStartTimeInSeconds);
-```
-
-~~whenever a match is finished (every UFO has 0 health left), the `GameOver` event is emitted~~
-
-
-```ts
-// typescript
-const events = getNamedProps(await moreMissilesPlzContract.getPastEvents("NewGame", { fromBlock: 0 }));
-console.log(events);
-```
-
-```solidity
-// solidity
-function startNewUfoInvasionGame(uint randVal) public onlyOwner;
-```
-
-~~this should probably be called when you receive a `GameOver` event~~
-
-```ts
-// typescript
-const isGameActive = await moreMissilesPlzContract.methods.isGameActive().call({ from: walletAddress, value: "0x0" });
-const startNewUfoInvasionGameMethod = moreMissilesPlzContract.methods.startNewUfoInvasionGame(getRandomInt(1, 10000));
 if (!isGameActive) {
+    const startNewUfoInvasionGameMethod = ufoInvasionContract.methods.startNewUfoInvasionGame(getRandomInt(1, 10000));
     const receipt = await startNewUfoInvasionGameMethod
       .send({
         from: walletAddress,
-        to: moreMissilesPlzAddress,
+        to: ufoInvasionContract,
         gas: await startNewUfoInvasionGameMethod.estimateGas(),
         nonce: await web3.eth.getTransactionCount(walletAddress, "pending"),
         chainId: 1088
       });
 }
-
 ```
+----
 
----
-## General Methods for Querying State
+The `MissileAttackedUFO` event contains a `missileTxnId` prop which will be the same for missiles used within 
+the same txn, and the other two are self-explanatory. 
+
+
 ```solidity
 // solidity
-function isGameActive() public view returns (bool) {
-    return _gameActive;
-}
 
-function getUserMissiles(address userAddr) external view returns (uint[] memory) {
-    return tokensOfOwner(userAddr);
-}
-
-// functions for getting data about the ufo invasion game state
-//
-
-function getGameStartTime() public view returns (uint) {
-    return _gameStartTime;
-}
-
-function getCurGameNumUFOs() external view returns (uint) {
-    return _numUfosInGame;
-}
-
-function getUfoAtIdx(uint idx) external view returns (UfoState memory) {
-    require(idx < _curUFOs.length, "there are not that many ufos in the current game!");
-    return _curUFOs[idx];
-}
-
-function getCurGameNumPlayers() external view returns (uint) {
-    return _numPlayersWithScoreInGame;
-}
-
-function getCurGamePlayerAtIdx(uint idx) external view returns (CurGameScore memory) {
-    require(idx < _curGameAddresses.length, "there is no leaderboard entry at this index!");
-    require(_curGamePlayerScoreLookup[_curGameAddresses[idx]].active, "this player has not yet played the current game!");
-    return _curGamePlayerScoreLookup[_curGameAddresses[idx]];
-}
-
-function getNumLeaderboardPlayers() external view returns (uint) {
-    return _numPlayersOnLeaderboard;
-}
-
-function getLeaderboardPlayerAtIdx(uint idx) external view returns (AllTimeLeaderboard memory) {
-    require(idx < _allTimeLeaderboardAddresses.length, "there is no leaderboard entry at this index!");
-    require(_allTimeLeaderboardLookup[_allTimeLeaderboardAddresses[idx]].exists, "this player has never scored any points before!");
-    return _allTimeLeaderboardLookup[_allTimeLeaderboardAddresses[idx]];
-}
-
-function getTotalNumberOfGames() public view returns (uint) {
-    return _totalNumGamesPlayed;
-}
-
-function getGameStatsByGameIdx(uint idx) public view returns (GameStats memory) {
-    require(idx < _gameStats.length, "there have no been that many games yet!");
-    return _gameStats[idx];
-}
+event MissileAttackedUFO(uint missileTxnId, uint missileId, address attacker);
 ```
 
-most of these are meant to be used by querying the total number of items in an array, meaning u can iterate up to this number, and use the index of your loop to then query an array item or mapping with more complex state.
+You can use the `missileId` given by this event with the `getMissileAttackInfo` method on `UfoInvasion.sol` to
+query more complex state about the missile attack event.
 
-getting data about the game:
+```solidity
+// solidity
+struct MissileAttack {
+    uint16 dmg;
+    uint16 hpBefore;
+    uint16 hpAfter;
+    uint32 missileTxnId;
+    address attacker;
+    address locationAddress;
+    uint missileId;
+    uint ufoId;
+}
+
+function getMissileAttackInfo(uint missileTxnId, uint missileId) public view returns (MissileAttack memory);
+```
 
 ```ts
-// typescript
 
-// #####################################################
-
-type CurGamePlayer = {
-  playerAddress: string,
-  score: number,
-  nukesUsed: number,
-  active: number
-};
-
-const getCurGameData = async (
-    walletAddress: string
-): Promise<CurGamePlayer[]> => {
-  const idx = Number(
-    await moreMissilesPlzContract.methods.getCurGameNumPlayers()
-      .call({ from: walletAddress, value: "0x00" })
-  );
-  const data: CurGamePlayer[] = [];
-  for (let i = 0; i < idx; i++) {
-    data.push(
-      await moreMissilesPlzContract.methods.getCurGamePlayerAtIdx(i)
-        .call({ from: walletAddress, value: "0x00" })
-    )
-  }
-  return getNamedProps(data);
-};
-
-// #####################################################
-
-type LeaderboardPlayer = {
-  playerAddress: string,
-  score: number,
-  wins: number,
-  nukesUsed: number,
-  exists: boolean
-};
-const getLeaderboard = async (
-    walletAddress: string
-): Promise<LeaderboardPlayer[]> => {
-  const idx = Number(
-    await moreMissilesPlzContract.methods.getNumLeaderboardPlayers()
-      .call({ from: walletAddress, value: "0x00" })
-  );
-  const data: LeaderboardPlayer[] = [];
-  for (let i = 0; i < idx; i++) {
-    data.push(
-      await moreMissilesPlzContract.methods.getLeaderboardPlayerAtIdx(i)
-        .call({ from: walletAddress, value: "0x00" })
-    )
-  }
-  return getNamedProps(data);
-};
-
-// #####################################################
-
-type GameUfo = {
-  locationAddress: string,
+type MissileAttack = {
+  missileTxnId: number,
+  missileId: number,
   ufoId: number,
-  curHp: number,
-  startingHp: number
-};
-const getGameUfos = async (
-  walletAddress: string
-): Promise<GameUfo[]> => {
-  const curGameNumUFOs = Number(
-    await ufoInvasionContract.methods.getCurGameNumUFOs()
-      .call({ from: walletAddress, value: "0x00" })
-  );
-  const data: GameUfo[] = [];
-  for (let i = 0; i < curGameNumUFOs; i++) {
+  attacker: string,
+  dmg: number,
+  hpBefore: number,
+  hpAfter: number
+}
+
+export const getMissileAttackInfoFromEvent = async (walletAddress: string) => {
+  // in case we only want missile attacks for a specific user, but u shud prob be subscribing to events for that anyway
+  const missileAttacks = getNamedProps(await ufoInvasionContract.getPastEvents("MissileAttackedUFO", { fromBlock: 0 }))
+    .filter(x => x.attacker === walletAddress);
+  const data: MissileAttack[] = [];
+  for (const { missileId, missileTxnId } of missileAttacks) {
     data.push(
-      await ufoInvasionContract.methods.getUfoAtIdx(i)
-        .call({ from: walletAddress, value: "0x00" })
-    )
+      await ufoInvasionContract.methods.getMissileAttackInfo(missileTxnId, missileId)
+        .call({ from: walletAddress, value: "0x0" })
+    );
   }
-  return getNamedProps(data);
+  return data;
+};
+```
+
+----
+
+The `GameOver` event fires when every UFO in the game reaches 0 hp and includes just the gameNumber of the match.
+```solidity
+// solidity
+event GameOver(uint gameNumber);
+```
+
+You can use the `gameNumber` given by this event with the `getGameStatsByGameNum` method on `UfoInvasion.sol` to
+query more complex state about the game which has just finished.
+
+```solidity
+// solidity
+struct GameStats {
+    bool isOver;
+    uint16 totalUfoHp;
+    uint32 gameNum;
+    address winner;
+    uint gameStartTimeInSeconds;
+    uint elapsedSecs;
+    uint[] ufoIds;
+}
+
+function getGameStatsByGameNum(uint gameNum) public view returns (GameStats memory);
+```
+
+```ts
+type GameStats = {
+  gameNum: number,
+  isOver: boolean,
+  winner: string
+  gameStartTimeInSeconds: number,
+  ufoIds: number[]
 };
 
-// #####################################################
-
+export const getGameStatsFromGameOverEvent = async (walletAddress: string): Promise<GameStats | void> => {
+  const gameOverEvents = getNamedProps(await ufoInvasionContract.getPastEvents("GameOver", { fromBlock: 0 }));
+  if (gameOverEvents.length === 0 || !gameOverEvents[0].hasOwnProperty("gameNumber")) {
+    return console.log("got no game over events!");
+  }
+  return await ufoInvasionContract.methods.getGameStatsByGameNum(gameOverEvents[0].gameNumber)
+    .call({ from: walletAddress, value: "0x0" });
+};
 ```
+
+### NOTE
+> Please refer to `README_OLD.md` for the other methods of querying game state. They are largely the same, except they use the `UfoInvasion.sol` contract or `MissileMaker.sol` contract instead of the proxy `MoreMissilePlz.sol` one.
+

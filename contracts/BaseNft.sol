@@ -4,9 +4,9 @@ pragma solidity ^0.8.4;
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
-import "./OwnableOrMainContract.sol";
+import "./OwnableOrOwned.sol";
 
-contract BaseNft is ERC721Enumerable, OwnableOrMainContract {
+contract BaseNft is ERC721Enumerable, OwnableOrOwned {
     using SafeMath for uint;
     using Counters for Counters.Counter;
 
@@ -33,13 +33,4 @@ contract BaseNft is ERC721Enumerable, OwnableOrMainContract {
         }
         return tokensId;
     }
-
-    function withdraw() public onlyOwnerOrMain {
-        uint balance = address(this).balance;
-        require(balance > 0, "No ether left to withdraw");
-
-        (bool success, ) = (msg.sender).call{ value: balance }("");
-        require(success, "Transfer failed.");
-    }
-
 }
