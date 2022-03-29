@@ -126,7 +126,7 @@ struct MissileCreatedState {
     uint missileNftId;
 }
 
-function getMissileCreatedInfo(uint missileNftId) public view returns (MissileCreatedState memory);
+function getMissileCreatedInfo(uint missileCreatedEventId) public view returns (MissileCreatedState memory);
 ```
 
 ```ts
@@ -242,7 +242,7 @@ struct MissileAttack {
     uint ufoId;
 }
 
-function getMissileAttackInfo(uint missileTxnId, uint missileId) public view returns (MissileAttack memory);
+function getMissileAttackInfo(uint missileId) public view returns (MissileAttack memory);
 ```
 
 ```ts
