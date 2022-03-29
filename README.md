@@ -10,13 +10,13 @@ ____
 
 ## Latest Rinkeby Contract Addresses
 > WorldLeader:
-`0x1ee8754d3d60776048a6d9C44fd537ff85066474`
+> `0xAdC166631145abCe289C5ba9B5AD4D260CB9b9CA`
 >
 > MissileMaker
-> `0xC9f4EF43503B6e448dF58E4d33F15dd793CF6083`
+> `0x803e6F74c8Ed2f0444Ad3104B359802a1450c500`
 > 
 > UfoInvasion:
-`0xDa7CF435a8dda36FeE9ABC6BF3243266749fEF7F`
+> `0x1e0a0b2f493a25e728CDCb93E561c9667B9c56B2`
 
 ----
 
@@ -38,6 +38,26 @@ const ufoInvasionContract = new web3.eth.Contract(
   ufoInvasionContract.abi as any,
   ufoInvsaionAddress
 );
+```
+
+----
+
+here are some helpers for removing all the garbage from solidity data queries and event responses:
+```ts
+// typescript
+const getNamedValsFromObj = <T>(obj: T): T =>
+  Object.assign({}, ...Object.entries(obj)
+    .filter(([key,]) => key.length > 0 && Number.isNaN(Number(key[0])))
+    .map(([key, val]) => ({[key]: (typeof val === "string" && !val.startsWith("0x") && !Number.isNaN(Number(val)) ? Number(val) : val)}))
+  );
+
+type HasReturnValsProp<T> = { returnValues: T };
+
+const hasReturnVals = <T>(obj: T | HasReturnValsProp<T>): obj is HasReturnValsProp<T> =>
+  (obj as any).hasOwnProperty("returnValues");
+
+const getNamedProps = <T>(events: T[] | HasReturnValsProp<T>[]) =>
+  events.map(x => hasReturnVals(x) ? x.returnValues : x).map(getNamedValsFromObj);
 ```
 
 ----
@@ -148,7 +168,7 @@ const getMissileCreatedInfoFromEvent = async (walletAddress: string) => {
         .call({ from: walletAddress, value: "0x0" })
     );
   }
-  return data;
+  return getNamedProps(data);
 };
 ```
 ----
@@ -223,7 +243,7 @@ the same txn, and the other two are self-explanatory.
 ```solidity
 // solidity
 
-event MissileAttackedUFO(uint missileTxnId, uint missileId, address attacker);
+event MissileAttackedUFO(uint32 gameNum, address attacker, uint missileTxnId, uint missileId);
 ```
 
 You can use the `missileId` given by this event with the `getMissileAttackInfo` method on `UfoInvasion.sol` to
@@ -236,6 +256,7 @@ struct MissileAttack {
     uint16 hpBefore;
     uint16 hpAfter;
     uint32 missileTxnId;
+    uint32 gameNum;
     address attacker;
     address locationAddress;
     uint missileId;
@@ -248,6 +269,7 @@ function getMissileAttackInfo(uint missileId) public view returns (MissileAttack
 ```ts
 
 type MissileAttack = {
+  gameNum: number,
   missileTxnId: number,
   missileId: number,
   ufoId: number,
@@ -268,7 +290,7 @@ export const getMissileAttackInfoFromEvent = async (walletAddress: string) => {
         .call({ from: walletAddress, value: "0x0" })
     );
   }
-  return data;
+  return getNamedProps(data);
 };
 ```
 
@@ -277,7 +299,7 @@ export const getMissileAttackInfoFromEvent = async (walletAddress: string) => {
 The `GameOver` event fires when every UFO in the game reaches 0 hp and includes just the gameNumber of the match.
 ```solidity
 // solidity
-event GameOver(uint gameNumber);
+event GameOver(uint gameNum);
 ```
 
 You can use the `gameNumber` given by this event with the `getGameStatsByGameNum` method on `UfoInvasion.sol` to
@@ -309,11 +331,13 @@ type GameStats = {
 
 export const getGameStatsFromGameOverEvent = async (walletAddress: string): Promise<GameStats | void> => {
   const gameOverEvents = getNamedProps(await ufoInvasionContract.getPastEvents("GameOver", { fromBlock: 0 }));
-  if (gameOverEvents.length === 0 || !gameOverEvents[0].hasOwnProperty("gameNumber")) {
+  if (gameOverEvents.length === 0 || !gameOverEvents[0].hasOwnProperty("gameNum")) {
     return console.log("got no game over events!");
   }
-  return await ufoInvasionContract.methods.getGameStatsByGameNum(gameOverEvents[0].gameNumber)
-    .call({ from: walletAddress, value: "0x0" });
+  return getNamedProps(
+    await ufoInvasionContract.methods.getGameStatsByGameNum(gameOverEvents[0].gameNum)
+      .call({ from: walletAddress, value: "0x0" })
+  );
 };
 ```
 
@@ -324,12 +348,26 @@ within each `GameStats` object, there is an array of `ufoIds` for the ids of UFO
 the following function returns information about the current game's UFOs in the case its second argument "gameNum"
 is undefined, otherwise it uses the "gameNum" value to determine which game's UFOs it should get information about 
 
+```solidity
+// solidity
+struct UfoState {
+    uint16 curHp;
+    uint16 startingHp;
+    uint32 gameNum;
+    address locationAddress;
+    uint ufoId;
+}
+function getUfoAtIdxByGameNum(uint ufoIdx, uint gameNum) external view returns (UfoState memory);
+function getUfoAtIdxInCurrentGame(uint ufoIdx) external view returns (UfoState memory);
+```
+
 ```ts
 // typescript
 type GameUfo = {
   locationAddress: string,
   ufoId: number,
   curHp: number,
+  gameNum: number.
   startingHp: number,
   gameNumber: number
 };
@@ -343,14 +381,17 @@ const getGameUFOs = async (
       !gameNum
         ? await ufoInvasionContract.methods.getCurGameNumUFOs()
           .call({ from: walletAddress, value: "0x00" })
-        : await ufoInvasionContract.methods.getGameStatsByGameNum(gameNum)
+        : await ufoInvasionContract.methods.getNumUFOsInGameByGameNum(gameNum)
           .call({ from: walletAddress, value: "0x00" })
     );
   const data: GameUfo[] = [];
   for (let i = 0; i < gameNumUfos; i++) {
     data.push(
-      await ufoInvasionContract.methods.getUfoAtIdx(i)
-        .call({ from: walletAddress, value: "0x00" })
+      !gameNum 
+        ? await ufoInvasionContract.methods.getUfoAtIdxInCurrentGame(i)
+          .call({ from: walletAddress, value: "0x00" })
+        : await ufoInvasionContract.methods.getUfoAtIdxByGameNum(i, gameNum)
+          .call({ from: walletAddress, value: "0x00" })
     )
   }
   return getNamedProps(data);
@@ -390,11 +431,11 @@ function isGameActive() external view returns (bool);
 // returns the number of UFOs in the game index by `gameNum`
 function getNumUFOsInGameByGameNum(uint gameNum) external view returns;
 
-// calls getNumUFOsInGameByGameNum(_totalNumGamesPlayed)
-function getCurGameNumUFOs() external view returns (uint);
-
 // returns information about the UFO at the index `ufoIdx` for the game number `gameNum`
 function getUfoAtIdxByGameNum(uint ufoIdx, uint gameNum) external view returns (UfoState memory);
+
+// calls getNumUFOsInGameByGameNum(_totalNumGamesPlayed)
+function getCurGameNumUFOs() external view returns (uint);
 
 // calls getUfoAtIdxByGameNum(ufoIdx, _totalNumGamesPlayed);
 function getUfoAtIdxInCurrentGame(uint ufoIdx) external view returns (UfoState memory);
@@ -434,4 +475,9 @@ function numMissilesReadyToRoll() public view returns (uint);
 // returns the amount of damage the missile with the id `missileId` does
 function getMissileDmg(uint256 missileId) public view returns (uint64);
 
+// returns the missile ids of the missiles owned by the user
+function getUserMissiles(address userAddr) external view returns (uint[] memory);
+
+// returns the percentage chance each World Leader NFT has at rolling a missile
+function getMissilePercChance() public view returns (uint);
 ```

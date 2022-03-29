@@ -38,26 +38,20 @@ contract MissileMaker is BaseNft {
         address owner;
         uint missileNftId;
     }
+
     mapping(uint => MissileCreatedState) _missileCreatedLookup;
+
     function getMissileCreatedInfo(uint missileNftId) public view returns (MissileCreatedState memory) {
         require(_missileCreatedLookup[missileNftId].dmg > 0, "this missile created event doesn't exist!");
         return _missileCreatedLookup[missileNftId];
     }
-
-//    function allMissilesExist(uint[] calldata missileIds) external view returns (bool) {
-//        for (uint i = 0; i < missileIds.length; i++) {
-//            if (!_exists(missileIds[i])) {
-//                return false;
-//            }
-//        }
-//        return true;
-//    }
 
     event MissilesCreated(uint missileCreatedEventId, address createdForAddress);
 
     constructor() BaseNft("Missile Maker", "U235") {
         _creationTime = block.timestamp;
     }
+
     function getNextCutoffInSecondsSinceEpoch() private view returns (uint) {
         uint timeSinceCreationInDays = block.timestamp.sub(_creationTime).secsToDays();
         uint startOfThisStepInSecs = _creationTime.add(timeSinceCreationInDays.daysToSecs());
@@ -119,22 +113,6 @@ contract MissileMaker is BaseNft {
         createMissiles(msg.sender, randVal, numMissilesToMint);
     }
 
-    // returns the number of missiles rolling attempts the message sender has available currently
-    function numMissilesReadyToRoll() public view returns (uint) {
-        WorldLeader leader = WorldLeader(_ownedContracts.leader);
-        if (leader.balanceOf(msg.sender) == 0) {
-            return 0;
-        }
-        uint[] memory leaderNftIds = leader.tokensOfOwner(msg.sender);
-        uint numReady = 0;
-        for (uint i = 0; i < leaderNftIds.length; i++) {
-            if (isRollForMissileReady(_lastRunLookup[leaderNftIds[i]])) {
-                numReady++;
-            }
-        }
-        return numReady;
-    }
-
     function createMissiles(address sender, uint randVal, uint numMissilesToMint) private {
         for (uint i = 0; i < numMissilesToMint; i++) {
             uint missileNftId = _mintSingleNFT(sender);
@@ -153,13 +131,6 @@ contract MissileMaker is BaseNft {
         return newTokenID;
     }
 
-    // returns the amount of damage the missile with the id `missileId` does
-    function getMissileDmg(uint256 missileId) public view returns (uint64) {
-        require(!_isBurned(missileId), "this missile has already been used!");
-        require(_exists(missileId), "this does not exist!");
-        return _missileDmgLookup[missileId];
-    }
-
     function _getMissileDmg(address sender, uint256 missileId) external returns (uint64) {
         require(msg.sender == _ownedContracts.ufoInvasion || msg.sender == owner());
         require(ownerOf(missileId) == sender, "getMissileDmg :: you can't do that");
@@ -176,20 +147,48 @@ contract MissileMaker is BaseNft {
         return dmg;
     }
 
-    function setMissilePercChance(uint newChancePerc) public onlyOwner {
-        missileChancePerc = newChancePerc;
-    }
+    // ********** PUBLIC DATA QUERY METHODS **********
 
+    // returns the percentage chance each World Leader NFT has at rolling a missile
     function getMissilePercChance() public view returns (uint) {
         return missileChancePerc;
     }
+
+    // returns the missile ids of the missiles owned by the user
+    function getUserMissiles(address userAddr) external view returns (uint[] memory) {
+        return tokensOfOwner(userAddr);
+    }
+
+    // returns the amount of damage the missile with the id `missileId` does
+    function getMissileDmg(uint256 missileId) public view returns (uint64) {
+        require(!_isBurned(missileId), "this missile has already been used!");
+        require(_exists(missileId), "this does not exist!");
+        return _missileDmgLookup[missileId];
+    }
+
+    // returns the number of missiles rolling attempts the message sender has available currently
+    function numMissilesReadyToRoll() public view returns (uint) {
+        WorldLeader leader = WorldLeader(_ownedContracts.leader);
+        if (leader.balanceOf(msg.sender) == 0) {
+            return 0;
+        }
+        uint[] memory leaderNftIds = leader.tokensOfOwner(msg.sender);
+        uint numReady = 0;
+        for (uint i = 0; i < leaderNftIds.length; i++) {
+            if (isRollForMissileReady(_lastRunLookup[leaderNftIds[i]])) {
+                numReady++;
+            }
+        }
+        return numReady;
+    }
+
+    // ********** ONLY OWNER PARAMETER CHANGING **********
 
     function setHoursBetweenCutoffs(uint newDaysBetweenCutoff) public onlyOwner {
         _hoursBetweenCutoffs = newDaysBetweenCutoff;
     }
 
-    function getUserMissiles(address userAddr) external view returns (uint[] memory) {
-        return tokensOfOwner(userAddr);
+    function setMissilePercChance(uint newChancePerc) public onlyOwner {
+        missileChancePerc = newChancePerc;
     }
-
 }
