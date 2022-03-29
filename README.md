@@ -264,7 +264,7 @@ export const getMissileAttackInfoFromEvent = async (walletAddress: string) => {
   const data: MissileAttack[] = [];
   for (const { missileId, missileTxnId } of missileAttacks) {
     data.push(
-      await ufoInvasionContract.methods.getMissileAttackInfo(missileTxnId, missileId)
+      await ufoInvasionContract.methods.getMissileAttackInfo(missileId)
         .call({ from: walletAddress, value: "0x0" })
     );
   }
@@ -317,6 +317,121 @@ export const getGameStatsFromGameOverEvent = async (walletAddress: string): Prom
 };
 ```
 
-### NOTE
-> Please refer to `README_OLD.md` for the other methods of querying game state. They are largely the same, except they use the `UfoInvasion.sol` contract or `MissileMaker.sol` contract instead of the proxy `MoreMissilePlz.sol` one.
+----
 
+within each `GameStats` object, there is an array of `ufoIds` for the ids of UFOs from that game.
+
+the following function returns information about the current game's UFOs in the case its second argument "gameNum"
+is undefined, otherwise it uses the "gameNum" value to determine which game's UFOs it should get information about 
+
+```ts
+// typescript
+type GameUfo = {
+  locationAddress: string,
+  ufoId: number,
+  curHp: number,
+  startingHp: number,
+  gameNumber: number
+};
+
+const getGameUFOs = async (
+  walletAddress: string,
+  gameNum?: number
+): Promise<GameUfo[]> => {
+  const gameNumUfos =
+    Number(
+      !gameNum
+        ? await ufoInvasionContract.methods.getCurGameNumUFOs()
+          .call({ from: walletAddress, value: "0x00" })
+        : await ufoInvasionContract.methods.getGameStatsByGameNum(gameNum)
+          .call({ from: walletAddress, value: "0x00" })
+    );
+  const data: GameUfo[] = [];
+  for (let i = 0; i < gameNumUfos; i++) {
+    data.push(
+      await ufoInvasionContract.methods.getUfoAtIdx(i)
+        .call({ from: walletAddress, value: "0x00" })
+    )
+  }
+  return getNamedProps(data);
+};
+```
+you could use thie function to retrieve the information of every game's UFO like this
+
+```ts
+const getAllGamesUFOs = async (
+  walletAddress: string
+) => {
+  const totalNumberOfGames = Number(
+    await ufoInvasionContract.methods.getTotalNumberOfGames()
+      .call({ from: walletAddress, value: "0x00" })
+  );
+  const data: {[gameNum: number]: GameUfo[]} = {};
+  for (let i = 0; i < totalNumberOfGames; i++) {
+    data[i] = await getGameUFOs(walletAddress, i);
+  }
+  return data;
+};
+```
+
+----
+
+here are the `UfoInvasion.sol` data querying methods:
+
+```solidity
+// solidity
+
+// returns whether the UFO with the id `ufoId` is alive or not
+function ufoIsAlive(uint ufoId) public view returns (bool);
+
+// returns whether there is currently a game active or not
+function isGameActive() external view returns (bool);
+
+// returns the number of UFOs in the game index by `gameNum`
+function getNumUFOsInGameByGameNum(uint gameNum) external view returns;
+
+// calls getNumUFOsInGameByGameNum(_totalNumGamesPlayed)
+function getCurGameNumUFOs() external view returns (uint);
+
+// returns information about the UFO at the index `ufoIdx` for the game number `gameNum`
+function getUfoAtIdxByGameNum(uint ufoIdx, uint gameNum) external view returns (UfoState memory);
+
+// calls getUfoAtIdxByGameNum(ufoIdx, _totalNumGamesPlayed);
+function getUfoAtIdxInCurrentGame(uint ufoIdx) external view returns (UfoState memory);
+
+// returns the number of players in the current game's stats 
+function getCurGameNumPlayers() external view returns (uint);
+
+// returns the stats for the player at the index `idx` for the current game
+function getCurGamePlayerAtIdx(uint idx) external view returns (CurGameScore memory);
+
+// returns the total number of players who have stats on the leaderboard
+function getNumLeaderboardPlayers() external view returns (uint);
+
+// returns the leaderboard information for the player at the index `idx`
+function getLeaderboardPlayerAtIdx(uint idx) external view returns (AllTimeLeaderboard memory);
+
+// returns the total number of games played so far
+function getTotalNumberOfGames() public view returns (uint);
+
+// returns the game stats for the game with the idx `gameNum`
+function getGameStatsByGameNum(uint gameNum) public view returns (GameStats memory);
+
+// returns the total hp for all UFOs in the current or last game
+function getTotalHpForUFOs() public view returns (uint);
+```
+
+----
+
+here are the `MissileMaker.sol` data querying methods:
+
+```solidity
+// solidity
+
+// returns the number of missiles rolling attempts the message sender has available currently 
+function numMissilesReadyToRoll() public view returns (uint);
+
+// returns the amount of damage the missile with the id `missileId` does
+function getMissileDmg(uint256 missileId) public view returns (uint64);
+
+```

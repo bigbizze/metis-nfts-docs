@@ -2,11 +2,12 @@
 pragma solidity ^0.8.4;
 
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
-import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
 import "./OwnableOrOwned.sol";
+//import "./ERC721EnumerableWithQueryableBurn.sol";
+import "./ERC721QueryableBurn.sol";
 
-contract BaseNft is ERC721Enumerable, OwnableOrOwned {
+contract BaseNft is ERC721QueryableBurn, OwnableOrOwned {
     using SafeMath for uint;
     using Counters for Counters.Counter;
 
