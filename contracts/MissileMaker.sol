@@ -13,7 +13,7 @@ contract MissileMaker is BaseNft {
     using Helpers for uint;
     using SafeMath for uint;
     using Counters for Counters.Counter;
-    uint public _creationTime;
+    uint private _creationTime;
 
     // how many hours make up one interval (within which a leader NFT can only attempt to roll for a missile once)
     //
@@ -44,14 +44,14 @@ contract MissileMaker is BaseNft {
         return _missileCreatedLookup[missileNftId];
     }
 
-    function allMissilesExist(uint[] calldata missileIds) external view returns (bool) {
-        for (uint i = 0; i < missileIds.length; i++) {
-            if (!_exists(missileIds[i])) {
-                return false;
-            }
-        }
-        return true;
-    }
+//    function allMissilesExist(uint[] calldata missileIds) external view returns (bool) {
+//        for (uint i = 0; i < missileIds.length; i++) {
+//            if (!_exists(missileIds[i])) {
+//                return false;
+//            }
+//        }
+//        return true;
+//    }
 
     event MissilesCreated(uint missileCreatedEventId, address createdForAddress);
 
@@ -114,10 +114,12 @@ contract MissileMaker is BaseNft {
     }
 
     function maybeGetMissiles(uint randVal) external {
+        randVal = randVal.randomize(block.timestamp, _creationTime);
         uint numMissilesToMint = _maybeGetMissiles(msg.sender, randVal, missileChancePerc);
         createMissiles(msg.sender, randVal, numMissilesToMint);
     }
 
+    // returns the number of missiles rolling attempts the message sender has available currently
     function numMissilesReadyToRoll() public view returns (uint) {
         WorldLeader leader = WorldLeader(_ownedContracts.leader);
         if (leader.balanceOf(msg.sender) == 0) {
@@ -151,16 +153,18 @@ contract MissileMaker is BaseNft {
         return newTokenID;
     }
 
-    function getMissileDmg(address sender, uint256 missileId) public view returns (uint64) {
+    // returns the amount of damage the missile with the id `missileId` does
+    function getMissileDmg(uint256 missileId) public view returns (uint64) {
+        require(!_isBurned(missileId), "this missile has already been used!");
         require(_exists(missileId), "this does not exist!");
-        require(ownerOf(missileId) == sender, "getMissileDmg :: you can't do that");
         return _missileDmgLookup[missileId];
     }
 
-    function _getMissileDmg(address sender, uint256 missileId) public returns (uint64) {
+    function _getMissileDmg(address sender, uint256 missileId) external returns (uint64) {
         require(msg.sender == _ownedContracts.ufoInvasion || msg.sender == owner());
-        uint64 missileDmg = getMissileDmg(sender, missileId);
-        _burn(missileId);
+        require(ownerOf(missileId) == sender, "getMissileDmg :: you can't do that");
+        uint64 missileDmg = getMissileDmg(missileId);
+        burn(missileId);
         return missileDmg;
     }
 

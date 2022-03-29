@@ -32,6 +32,7 @@ contract UfoInvasion is BaseNft("UFO Invasion", "UFO") {
 
     uint32 _totalNumGamesPlayed = 0;
     uint _maxMissilesAtOnce = 5;
+    uint _minNumMintedBeforeYouCanAttack = 100;
 
     mapping(uint => UfoState) _ufoStateLookup;
     struct GameStats {
@@ -138,8 +139,8 @@ contract UfoInvasion is BaseNft("UFO Invasion", "UFO") {
     }
 
     function attackRandomUFOs(uint randVal, uint[] memory missileIds, uint amountUFOs) external  {
-        randVal = randVal + _totalNumGamesPlayed;
-        require(WorldLeader(_ownedContracts.leader).totalSupply() > 100, "not enough world leader NFTs minted yet!");
+        randVal = randVal.randomize(block.timestamp, _totalNumGamesPlayed);
+        require(WorldLeader(_ownedContracts.leader).totalSupply() > _minNumMintedBeforeYouCanAttack, "not enough world leader NFTs minted yet!");
         require(_gameActive, "the game is not active!");
         require(missileIds.length < _maxMissilesAtOnce
 //        , string(abi.encodePacked("you can only use ", MAX_MISSILES_AT_ONCE.uint2str(), "at once!"))
@@ -180,7 +181,7 @@ contract UfoInvasion is BaseNft("UFO Invasion", "UFO") {
             missileDmg = uint64(missileDmg.mul(_ufoKillDmgScoreMultiplier).div(100).subSafe(missileDmg));
             _curGamePlayerScoreLookup[sender].score += missileDmg;
             _allTimeLeaderboardLookup[sender].score += missileDmg;
-            _burn(ufoId);
+            burn(ufoId);
             if (isGameOver()) {
                 _gameStats[_totalNumGamesPlayed].winner = getWinner();
                 missileDmg = uint64(_curGamePlayerScoreLookup[sender].score.mul(_gameWinnerTotalScoreMultiplier).div(100).subSafe(_curGamePlayerScoreLookup[sender].score));
@@ -231,7 +232,7 @@ contract UfoInvasion is BaseNft("UFO Invasion", "UFO") {
             }
         }
         _totalNumGamesPlayed++;
-        setIsGameActive(false);
+        _setIsGameActive(false);
         return true;
     }
 
@@ -261,7 +262,7 @@ contract UfoInvasion is BaseNft("UFO Invasion", "UFO") {
         randVal = randVal + 1;
         randVal = randVal.randomize(block.timestamp, _totalNumGamesPlayed);
         require(!_gameActive);
-        setIsGameActive(true);
+        _setIsGameActive(true);
         if (_gameStartTime != 0 && _gameEndTime != 0) { // use the default total UFO health when there has never been a game before
             _totalUfoHp = getNewTotalUfoHealth(_gameStartTime, _gameEndTime, uint(_wantedGameLengthInHours), uint(_totalUfoHp));
             for (uint i = 0; i < _numPlayersWithScoreInGame; i++) {
@@ -417,74 +418,105 @@ contract UfoInvasion is BaseNft("UFO Invasion", "UFO") {
         return randomUfos;
     }
 
-    function ufoIsAlive(uint ufoId) public view returns (bool) {
+    function _ufoIsAlive(uint ufoId) internal view returns (bool) {
         return _ufoStateLookup[ufoId].curHp > 0;
     }
 
-    function setIsGameActive(bool to) public onlyOwner {
-        _gameActive = to;
+    function ufoIsAlive(uint ufoId) public view returns (bool) {
+        return _ufoIsAlive(ufoId);
     }
 
+    // returns whether there is currently a game active or not
     function isGameActive() external view returns (bool) {
         return _gameActive;
     }
 
-    function getGameStartTime() external view returns (uint) {
-        return _gameStartTime;
+    // returns the number of UFOs in the game index by `gameNum`
+    function getNumUFOsInGameByGameNum(uint gameNum) external view returns (uint) {
+        return _getGameStatsByGameNum(gameNum).ufoIds.length;
     }
 
+    // calls getNumUFOsInGameByGameNum(_totalNumGamesPlayed)
     function getCurGameNumUFOs() external view returns (uint) {
         if (!_gameActive && _totalNumGamesPlayed == 0) {
             return 0;
         }
-        return _gameStats[_totalNumGamesPlayed].ufoIds.length;
+        return _getGameStatsByGameNum(_totalNumGamesPlayed).ufoIds.length;
     }
 
-    function getUfoAtIdx(uint idx) external view returns (UfoState memory) {
-        require(idx < _gameStats[_totalNumGamesPlayed].ufoIds.length
-        //        , "there are not that many ufos in the current game!"
+    function _getUfoAtIdxByGameNum(uint ufoIdx, uint gameNum) internal view returns (UfoState memory) {
+        GameStats memory gameStats = _getGameStatsByGameNum(gameNum);
+        require(ufoIdx < gameStats.ufoIds.length
+        , "there are not that many ufos in the current game!"
         );
-        require(_exists(_gameStats[_totalNumGamesPlayed].ufoIds[idx]));
-        UfoState memory ufoState = _ufoStateLookup[_gameStats[_totalNumGamesPlayed].ufoIds[idx]];
+        require(_existsOrBurned(gameStats.ufoIds[ufoIdx])
+        , "ufo at this id does not exist!"
+        );
+        UfoState memory ufoState = _ufoStateLookup[gameStats.ufoIds[ufoIdx]];
         ufoState.locationAddress = ownerOf(ufoState.ufoId);
         return ufoState;
     }
 
+    function getUfoAtIdxInCurrentGame(uint ufoIdx) external view returns (UfoState memory) {
+        return _getUfoAtIdxByGameNum(ufoIdx, _totalNumGamesPlayed);
+    }
+
+    // returns information about the UFO at the index `ufoIdx` for the game number `gameNum`
+    function getUfoAtIdxByGameNum(uint ufoIdx, uint gameNum) external view returns (UfoState memory) {
+        return _getUfoAtIdxByGameNum(ufoIdx, gameNum);
+    }
+
+    // returns the number of players in the current game's stats
     function getCurGameNumPlayers() external view returns (uint) {
+        require(_gameActive
+        , "there is no game active current"
+        );
         return _numPlayersWithScoreInGame;
     }
 
+    // returns the stats for the player at the index `idx` for the current game
     function getCurGamePlayerAtIdx(uint idx) external view returns (CurGameScore memory) {
+        require(_gameActive
+        , "there is no game active current"
+        );
         require(idx < _curGameAddresses.length
-//        , "there is no leaderboard entry at this index!"
+        , "there is no leaderboard entry at this index!"
         );
         require(_curGamePlayerScoreLookup[_curGameAddresses[idx]].active
-//        , "this player has not yet played the current game!"
+        , "this player has not yet played the current game!"
         );
         return _curGamePlayerScoreLookup[_curGameAddresses[idx]];
     }
 
+    // returns the total number of players who have stats on the leaderboard
     function getNumLeaderboardPlayers() external view returns (uint) {
         return _numPlayersOnLeaderboard;
     }
 
+    // returns the leaderboard information for the player at the index `idx`
     function getLeaderboardPlayerAtIdx(uint idx) external view returns (AllTimeLeaderboard memory) {
         require(idx < _allTimeLeaderboardAddresses.length
-//        , "there is no leaderboard entry at this index!"
+        , "there is no leaderboard entry at this index!"
         );
         require(_allTimeLeaderboardLookup[_allTimeLeaderboardAddresses[idx]].exists
-//        , "this player has never scored any points before!"
+        , "this player has never scored any points before!"
         );
         return _allTimeLeaderboardLookup[_allTimeLeaderboardAddresses[idx]];
     }
 
+    // returns the total number of games played so far
     function getTotalNumberOfGames() public view returns (uint) {
         return _totalNumGamesPlayed;
     }
 
+    // returns the game stats for the game with the idx `gameNum`
     function getGameStatsByGameNum(uint gameNum) public view returns (GameStats memory) {
+        return _getGameStatsByGameNum(gameNum);
+    }
+
+    function _getGameStatsByGameNum(uint gameNum) internal view returns (GameStats memory) {
         require(gameNum < _totalNumGamesPlayed
-//        , "there have not been that many games yet!"
+        , "there have not been that many games yet!"
         );
         GameStats memory gameStats = _gameStats[gameNum];
         if (!gameStats.isOver) {
@@ -493,8 +525,17 @@ contract UfoInvasion is BaseNft("UFO Invasion", "UFO") {
         return gameStats;
     }
 
+    // returns the total hp for all UFOs in the current or last game
     function getTotalHpForUFOs() public view returns (uint) {
         return _totalUfoHp;
+    }
+
+    function _setIsGameActive(bool to) internal {
+        _gameActive = to;
+    }
+
+    function setIsGameActive(bool to) public onlyOwner {
+        _setIsGameActive(to);
     }
 
     function updateMinMaxUFOs(uint8 min, uint8 max) public onlyOwner {
@@ -508,27 +549,31 @@ contract UfoInvasion is BaseNft("UFO Invasion", "UFO") {
 
     function setGameWinnerTotalScoreMultiplier(uint64 to) public onlyOwner {
         require(to >= 100
-//        , "game winner score multiplier must be at least 100 (150x)!"
+        , "game winner score multiplier must be at least 100 (150x)!"
         );
         _gameWinnerTotalScoreMultiplier = to;
     }
 
     function setUfoKillDmgScoreMultiplier(uint64 to) public onlyOwner {
         require(to >= 100
-//        , "ufo kill damage multiplier must be at least 100 (150x)!"
+        , "ufo kill damage multiplier must be at least 100 (150x)!"
         );
         _ufoKillDmgScoreMultiplier = to;
     }
 
     function setStartGameScoreReward(uint16 to) public onlyOwner {
         require(to < 100
-//        , "start game score reward must be less than 100 because it's a %!"
+        , "start game score reward must be less than 100 because it's a %!"
         );
         _startGameScoreReward = to;
     }
 
     function setMaxNumMissilesInOneTxn(uint newMax) public onlyOwner {
         _maxMissilesAtOnce = newMax;
+    }
+
+    function setMinNumMintedBeforeYouCanAttack(uint newMin) public onlyOwner {
+        _minNumMintedBeforeYouCanAttack = newMin;
     }
 }
 
