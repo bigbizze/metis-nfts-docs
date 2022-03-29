@@ -15516,7 +15516,7 @@
         2094
       ],
       "WorldLeader": [
-        6791
+        6851
       ]
     },
     "id": 3643,
@@ -15565,7 +15565,7 @@
         "nameLocation": "-1:-1:-1",
         "nodeType": "ImportDirective",
         "scope": 3643,
-        "sourceUnit": 6792,
+        "sourceUnit": 6852,
         "src": "110:27:16",
         "symbolAliases": [],
         "unitAlias": ""
@@ -18158,7 +18158,7 @@
                       "stateVariable": false,
                       "storageLocation": "default",
                       "typeDescriptions": {
-                        "typeIdentifier": "t_contract$_WorldLeader_$6791",
+                        "typeIdentifier": "t_contract$_WorldLeader_$6851",
                         "typeString": "contract WorldLeader"
                       },
                       "typeName": {
@@ -18168,13 +18168,13 @@
                           "id": 3166,
                           "name": "WorldLeader",
                           "nodeType": "IdentifierPath",
-                          "referencedDeclaration": 6791,
+                          "referencedDeclaration": 6851,
                           "src": "2966:11:16"
                         },
-                        "referencedDeclaration": 6791,
+                        "referencedDeclaration": 6851,
                         "src": "2966:11:16",
                         "typeDescriptions": {
-                          "typeIdentifier": "t_contract$_WorldLeader_$6791",
+                          "typeIdentifier": "t_contract$_WorldLeader_$6851",
                           "typeString": "contract WorldLeader"
                         }
                       },
@@ -18223,10 +18223,10 @@
                       "name": "WorldLeader",
                       "nodeType": "Identifier",
                       "overloadedDeclarations": [],
-                      "referencedDeclaration": 6791,
+                      "referencedDeclaration": 6851,
                       "src": "2996:11:16",
                       "typeDescriptions": {
-                        "typeIdentifier": "t_type$_t_contract$_WorldLeader_$6791_$",
+                        "typeIdentifier": "t_type$_t_contract$_WorldLeader_$6851_$",
                         "typeString": "type(contract WorldLeader)"
                       }
                     },
@@ -18241,7 +18241,7 @@
                     "src": "2996:35:16",
                     "tryCall": false,
                     "typeDescriptions": {
-                      "typeIdentifier": "t_contract$_WorldLeader_$6791",
+                      "typeIdentifier": "t_contract$_WorldLeader_$6851",
                       "typeString": "contract WorldLeader"
                     }
                   },
@@ -18289,7 +18289,7 @@
                           "referencedDeclaration": 3168,
                           "src": "3046:15:16",
                           "typeDescriptions": {
-                            "typeIdentifier": "t_contract$_WorldLeader_$6791",
+                            "typeIdentifier": "t_contract$_WorldLeader_$6851",
                             "typeString": "contract WorldLeader"
                           }
                         },
@@ -18452,7 +18452,7 @@
                         "referencedDeclaration": 3168,
                         "src": "3160:15:16",
                         "typeDescriptions": {
-                          "typeIdentifier": "t_contract$_WorldLeader_$6791",
+                          "typeIdentifier": "t_contract$_WorldLeader_$6851",
                           "typeString": "contract WorldLeader"
                         }
                       },
@@ -18463,7 +18463,7 @@
                       "lValueRequested": false,
                       "memberName": "tokensOfOwner",
                       "nodeType": "MemberAccess",
-                      "referencedDeclaration": 6497,
+                      "referencedDeclaration": 6557,
                       "src": "3160:29:16",
                       "typeDescriptions": {
                         "typeIdentifier": "t_function_external_view$_t_address_$returns$_t_array$_t_uint256_$dyn_memory_ptr_$",
@@ -20326,7 +20326,7 @@
                       "stateVariable": false,
                       "storageLocation": "default",
                       "typeDescriptions": {
-                        "typeIdentifier": "t_contract$_WorldLeader_$6791",
+                        "typeIdentifier": "t_contract$_WorldLeader_$6851",
                         "typeString": "contract WorldLeader"
                       },
                       "typeName": {
@@ -20336,13 +20336,13 @@
                           "id": 3332,
                           "name": "WorldLeader",
                           "nodeType": "IdentifierPath",
-                          "referencedDeclaration": 6791,
+                          "referencedDeclaration": 6851,
                           "src": "5117:11:16"
                         },
-                        "referencedDeclaration": 6791,
+                        "referencedDeclaration": 6851,
                         "src": "5117:11:16",
                         "typeDescriptions": {
-                          "typeIdentifier": "t_contract$_WorldLeader_$6791",
+                          "typeIdentifier": "t_contract$_WorldLeader_$6851",
                           "typeString": "contract WorldLeader"
                         }
                       },
@@ -20391,10 +20391,10 @@
                       "name": "WorldLeader",
                       "nodeType": "Identifier",
                       "overloadedDeclarations": [],
-                      "referencedDeclaration": 6791,
+                      "referencedDeclaration": 6851,
                       "src": "5138:11:16",
                       "typeDescriptions": {
-                        "typeIdentifier": "t_type$_t_contract$_WorldLeader_$6791_$",
+                        "typeIdentifier": "t_type$_t_contract$_WorldLeader_$6851_$",
                         "typeString": "type(contract WorldLeader)"
                       }
                     },
@@ -20409,7 +20409,7 @@
                     "src": "5138:35:16",
                     "tryCall": false,
                     "typeDescriptions": {
-                      "typeIdentifier": "t_contract$_WorldLeader_$6791",
+                      "typeIdentifier": "t_contract$_WorldLeader_$6851",
                       "typeString": "contract WorldLeader"
                     }
                   },
@@ -20471,7 +20471,7 @@
                           "referencedDeclaration": 3334,
                           "src": "5188:6:16",
                           "typeDescriptions": {
-                            "typeIdentifier": "t_contract$_WorldLeader_$6791",
+                            "typeIdentifier": "t_contract$_WorldLeader_$6851",
                             "typeString": "contract WorldLeader"
                           }
                         },
@@ -20648,7 +20648,7 @@
                         "referencedDeclaration": 3334,
                         "src": "5297:6:16",
                         "typeDescriptions": {
-                          "typeIdentifier": "t_contract$_WorldLeader_$6791",
+                          "typeIdentifier": "t_contract$_WorldLeader_$6851",
                           "typeString": "contract WorldLeader"
                         }
                       },
@@ -20659,7 +20659,7 @@
                       "lValueRequested": false,
                       "memberName": "tokensOfOwner",
                       "nodeType": "MemberAccess",
-                      "referencedDeclaration": 6497,
+                      "referencedDeclaration": 6557,
                       "src": "5297:20:16",
                       "typeDescriptions": {
                         "typeIdentifier": "t_function_external_view$_t_address_$returns$_t_array$_t_uint256_$dyn_memory_ptr_$",
@@ -24277,7 +24277,7 @@
         2094
       ],
       "WorldLeader": [
-        6791
+        6851
       ]
     },
     "id": 3643,
@@ -24326,7 +24326,7 @@
         "nameLocation": "-1:-1:-1",
         "nodeType": "ImportDirective",
         "scope": 3643,
-        "sourceUnit": 6792,
+        "sourceUnit": 6852,
         "src": "110:27:16",
         "symbolAliases": [],
         "unitAlias": ""
@@ -26919,7 +26919,7 @@
                       "stateVariable": false,
                       "storageLocation": "default",
                       "typeDescriptions": {
-                        "typeIdentifier": "t_contract$_WorldLeader_$6791",
+                        "typeIdentifier": "t_contract$_WorldLeader_$6851",
                         "typeString": "contract WorldLeader"
                       },
                       "typeName": {
@@ -26929,13 +26929,13 @@
                           "id": 3166,
                           "name": "WorldLeader",
                           "nodeType": "IdentifierPath",
-                          "referencedDeclaration": 6791,
+                          "referencedDeclaration": 6851,
                           "src": "2966:11:16"
                         },
-                        "referencedDeclaration": 6791,
+                        "referencedDeclaration": 6851,
                         "src": "2966:11:16",
                         "typeDescriptions": {
-                          "typeIdentifier": "t_contract$_WorldLeader_$6791",
+                          "typeIdentifier": "t_contract$_WorldLeader_$6851",
                           "typeString": "contract WorldLeader"
                         }
                       },
@@ -26984,10 +26984,10 @@
                       "name": "WorldLeader",
                       "nodeType": "Identifier",
                       "overloadedDeclarations": [],
-                      "referencedDeclaration": 6791,
+                      "referencedDeclaration": 6851,
                       "src": "2996:11:16",
                       "typeDescriptions": {
-                        "typeIdentifier": "t_type$_t_contract$_WorldLeader_$6791_$",
+                        "typeIdentifier": "t_type$_t_contract$_WorldLeader_$6851_$",
                         "typeString": "type(contract WorldLeader)"
                       }
                     },
@@ -27002,7 +27002,7 @@
                     "src": "2996:35:16",
                     "tryCall": false,
                     "typeDescriptions": {
-                      "typeIdentifier": "t_contract$_WorldLeader_$6791",
+                      "typeIdentifier": "t_contract$_WorldLeader_$6851",
                       "typeString": "contract WorldLeader"
                     }
                   },
@@ -27050,7 +27050,7 @@
                           "referencedDeclaration": 3168,
                           "src": "3046:15:16",
                           "typeDescriptions": {
-                            "typeIdentifier": "t_contract$_WorldLeader_$6791",
+                            "typeIdentifier": "t_contract$_WorldLeader_$6851",
                             "typeString": "contract WorldLeader"
                           }
                         },
@@ -27213,7 +27213,7 @@
                         "referencedDeclaration": 3168,
                         "src": "3160:15:16",
                         "typeDescriptions": {
-                          "typeIdentifier": "t_contract$_WorldLeader_$6791",
+                          "typeIdentifier": "t_contract$_WorldLeader_$6851",
                           "typeString": "contract WorldLeader"
                         }
                       },
@@ -27224,7 +27224,7 @@
                       "lValueRequested": false,
                       "memberName": "tokensOfOwner",
                       "nodeType": "MemberAccess",
-                      "referencedDeclaration": 6497,
+                      "referencedDeclaration": 6557,
                       "src": "3160:29:16",
                       "typeDescriptions": {
                         "typeIdentifier": "t_function_external_view$_t_address_$returns$_t_array$_t_uint256_$dyn_memory_ptr_$",
@@ -29087,7 +29087,7 @@
                       "stateVariable": false,
                       "storageLocation": "default",
                       "typeDescriptions": {
-                        "typeIdentifier": "t_contract$_WorldLeader_$6791",
+                        "typeIdentifier": "t_contract$_WorldLeader_$6851",
                         "typeString": "contract WorldLeader"
                       },
                       "typeName": {
@@ -29097,13 +29097,13 @@
                           "id": 3332,
                           "name": "WorldLeader",
                           "nodeType": "IdentifierPath",
-                          "referencedDeclaration": 6791,
+                          "referencedDeclaration": 6851,
                           "src": "5117:11:16"
                         },
-                        "referencedDeclaration": 6791,
+                        "referencedDeclaration": 6851,
                         "src": "5117:11:16",
                         "typeDescriptions": {
-                          "typeIdentifier": "t_contract$_WorldLeader_$6791",
+                          "typeIdentifier": "t_contract$_WorldLeader_$6851",
                           "typeString": "contract WorldLeader"
                         }
                       },
@@ -29152,10 +29152,10 @@
                       "name": "WorldLeader",
                       "nodeType": "Identifier",
                       "overloadedDeclarations": [],
-                      "referencedDeclaration": 6791,
+                      "referencedDeclaration": 6851,
                       "src": "5138:11:16",
                       "typeDescriptions": {
-                        "typeIdentifier": "t_type$_t_contract$_WorldLeader_$6791_$",
+                        "typeIdentifier": "t_type$_t_contract$_WorldLeader_$6851_$",
                         "typeString": "type(contract WorldLeader)"
                       }
                     },
@@ -29170,7 +29170,7 @@
                     "src": "5138:35:16",
                     "tryCall": false,
                     "typeDescriptions": {
-                      "typeIdentifier": "t_contract$_WorldLeader_$6791",
+                      "typeIdentifier": "t_contract$_WorldLeader_$6851",
                       "typeString": "contract WorldLeader"
                     }
                   },
@@ -29232,7 +29232,7 @@
                           "referencedDeclaration": 3334,
                           "src": "5188:6:16",
                           "typeDescriptions": {
-                            "typeIdentifier": "t_contract$_WorldLeader_$6791",
+                            "typeIdentifier": "t_contract$_WorldLeader_$6851",
                             "typeString": "contract WorldLeader"
                           }
                         },
@@ -29409,7 +29409,7 @@
                         "referencedDeclaration": 3334,
                         "src": "5297:6:16",
                         "typeDescriptions": {
-                          "typeIdentifier": "t_contract$_WorldLeader_$6791",
+                          "typeIdentifier": "t_contract$_WorldLeader_$6851",
                           "typeString": "contract WorldLeader"
                         }
                       },
@@ -29420,7 +29420,7 @@
                       "lValueRequested": false,
                       "memberName": "tokensOfOwner",
                       "nodeType": "MemberAccess",
-                      "referencedDeclaration": 6497,
+                      "referencedDeclaration": 6557,
                       "src": "5297:20:16",
                       "typeDescriptions": {
                         "typeIdentifier": "t_function_external_view$_t_address_$returns$_t_array$_t_uint256_$dyn_memory_ptr_$",
@@ -32986,7 +32986,7 @@
   },
   "networks": {},
   "schemaVersion": "3.4.5",
-  "updatedAt": "2022-03-27T07:15:54.081Z",
+  "updatedAt": "2022-03-29T18:26:48.559Z",
   "devdoc": {
     "kind": "dev",
     "methods": {
