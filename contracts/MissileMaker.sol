@@ -18,7 +18,7 @@ contract MissileMaker is BaseNft {
     // how many hours make up one interval (within which a leader NFT can only attempt to roll for a missile once)
     //
     uint public _hoursBetweenCutoffs = 24;
-    uint public missileChancePerc = 100;
+    uint public _missileChancePerc = 30;
 
     mapping(uint => uint) _lastRunLookup;
     uint _maxDmgPerRoll = 99;
@@ -52,13 +52,12 @@ contract MissileMaker is BaseNft {
         _creationTime = block.timestamp;
     }
 
-    function getNextCutoffInSecondsSinceEpoch() private view returns (uint) {
+    function _getNextCutoffInSecondsSinceEpoch() private view returns (uint) {
         uint timeSinceCreationInDays = block.timestamp.sub(_creationTime).secsToDays();
         uint startOfThisStepInSecs = _creationTime.add(timeSinceCreationInDays.daysToSecs());
         uint nextCutoffHours = startOfThisStepInSecs.secsToHours().add(_hoursBetweenCutoffs);
         return nextCutoffHours.hoursToSecs();
     }
-
     function isRollForMissileReady(uint lastRun) private view returns (bool) {
         uint nextCutoff = getNextCutoffInSecondsSinceEpoch();
         return lastRun == 0 || nextCutoff.sub(lastRun) > _hoursBetweenCutoffs.mul(60).mul(60);
@@ -109,7 +108,7 @@ contract MissileMaker is BaseNft {
 
     function maybeGetMissiles(uint randVal) external {
         randVal = randVal.randomize(block.timestamp, _creationTime);
-        uint numMissilesToMint = _maybeGetMissiles(msg.sender, randVal, missileChancePerc);
+        uint numMissilesToMint = _maybeGetMissiles(msg.sender, randVal, _missileChancePerc);
         createMissiles(msg.sender, randVal, numMissilesToMint);
     }
 
@@ -149,9 +148,13 @@ contract MissileMaker is BaseNft {
 
     // ********** PUBLIC DATA QUERY METHODS **********
 
+    function getNextCutoffInSecondsSinceEpoch() public view returns (uint) {
+        return _getNextCutoffInSecondsSinceEpoch();
+    }
+
     // returns the percentage chance each World Leader NFT has at rolling a missile
     function getMissilePercChance() public view returns (uint) {
-        return missileChancePerc;
+        return _missileChancePerc;
     }
 
     // returns the missile ids of the missiles owned by the user
@@ -189,6 +192,6 @@ contract MissileMaker is BaseNft {
     }
 
     function setMissilePercChance(uint newChancePerc) public onlyOwner {
-        missileChancePerc = newChancePerc;
+        _missileChancePerc = newChancePerc;
     }
 }
