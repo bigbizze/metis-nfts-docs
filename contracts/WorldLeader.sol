@@ -7,49 +7,39 @@ import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 //import "./ERC721Enumerable.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
-import "./OwnableOrOwned.sol";
+import "@openzeppelin/contracts/finance/PaymentSplitter.sol";
 
-contract WorldLeader is ERC721Enumerable, OwnableOrOwned {
+import "./OwnableOrOwned.sol";
+import "./Helpers.sol";
+
+contract WorldLeader is ERC721Enumerable, PaymentSplitter, OwnableOrOwned {
     using SafeMath for uint;
     using Counters for Counters.Counter;
-
+    using Helpers for uint;
     Counters.Counter private _tokenIdx;
 
-    uint public constant MAX_SUPPLY = 10000;
-    uint public constant PRICE = 0.00001 ether;
+    bool private _autoWithdraw = false;
+    uint public constant MAX_SUPPLY = 5800;
+    uint public constant PRICE = 0.13 ether;
     uint public constant MAX_PER_MINT = 21;
-    uint public constant WHITELIST_MAX_AMOUNT = 5;
 
     enum ReleaseStatus {
         Unreleased,
-        Whitelist,
         Released
     }
 
     ReleaseStatus public _releaseStatus = ReleaseStatus.Unreleased;
 
-    address payable[] private _recipients;
-
-    event SetRecipient(address payable recipient);
-
     string public baseTokenURI;
-
-    constructor() ERC721("BidensRocket", "LEADER") {}
+    uint private _numPayees;
 
     mapping(address => bool) _freeMintLookup;
-    mapping(address => uint) _whitelistRemaining;
 
-    function reserveNFTs() public onlyOwner {
-        uint totalMinted = _tokenIdx.current();
-
-        require(
-            totalMinted.add(100) < MAX_SUPPLY,
-            "Not enough NFTs left to reserve"
-        );
-
-        for (uint i = 0; i < 100; i++) {
-            _mintSingleNFT();
-        }
+    constructor(
+        address[] memory _payees,
+        uint256[] memory _shares
+    ) ERC721("BidensRocket", "BIDEN") PaymentSplitter(_payees, _shares) payable {
+        _numPayees = _payees.length;
     }
 
     function _baseURI() internal view virtual override returns (string memory) {
@@ -60,42 +50,33 @@ contract WorldLeader is ERC721Enumerable, OwnableOrOwned {
         baseTokenURI = _baseTokenURI;
     }
 
-    function mintNFTs(uint _count) external payable {
+    function mintNFTs(uint _numToPayForCount) external payable {
         require(_releaseStatus != ReleaseStatus.Unreleased, "this is not yet released!");
-        if (_releaseStatus == ReleaseStatus.Whitelist) {
-            require(_whitelistRemaining[msg.sender] != 0, "you have no whitelisted mints remaining!");
-            // while the whitelist period is still active, if they try to request more than their allowed amount
-            // whitelist amount, set the amount to the remainder of their whitelist instead
-            if (_count > _whitelistRemaining[msg.sender]) {
-                _count = _whitelistRemaining[msg.sender];
-            }
-            _whitelistRemaining[msg.sender] = _whitelistRemaining[msg.sender].sub(_count);
-        }
 
         uint totalMinted = _tokenIdx.current();
 
-        uint counter;
+        uint numToMintCount = _numToPayForCount;
 
-        if (_count == 10) {
-            counter = 12;
-        } else if (_count == 17) {
-            counter = 21;
-        } else {
-            counter = _count;
+        if (_numToPayForCount >= 10 && _numToPayForCount < 17) {
+            numToMintCount += 2;
+        } else if (_numToPayForCount >= 17) {
+            numToMintCount += 3;
         }
 
-        require(totalMinted.add(counter) <= MAX_SUPPLY, "Not enough NFTs left!");
-        require(_count > 0 && _count <= MAX_PER_MINT, "count is empty!");
+        require(totalMinted.add(numToMintCount) <= MAX_SUPPLY, "Not enough NFTs left!");
+        require(_numToPayForCount > 0 && _numToPayForCount <= MAX_PER_MINT, "count is empty!");
 
-        uint priceNeeded = _freeMintLookup[msg.sender] ? PRICE.mul(_count - 1) : PRICE.mul(_count);
+        uint priceNeeded = _freeMintLookup[msg.sender] ? PRICE.mul(_numToPayForCount.sub(1)) : PRICE.mul(_numToPayForCount);
         _freeMintLookup[msg.sender] = false;
 
         require(msg.value >= priceNeeded, "Need more Metis");
 
-        for (uint i = 0; i < counter; i++) {
+        for (uint i = 0; i < numToMintCount; i++) {
             _mintSingleNFT();
         }
-        withdrawAuto(msg.value);
+        if (_autoWithdraw) {
+            withdrawAuto();
+        }
     }
 
     function exists(uint nftId) public view returns (bool) {
@@ -119,44 +100,10 @@ contract WorldLeader is ERC721Enumerable, OwnableOrOwned {
         return tokensId;
     }
 
-    function withdrawAuto(uint amount) public {
-        require(_recipients.length > 0, "no recipients have been added to withdraw to!");
-        require(amount > 0, "No ether left to auto withdraw");
-        uint amountPerRecipient = amount.div(_recipients.length);
-        for (uint i = 0; i < _recipients.length; i++) {
-            (bool success, ) = (_recipients[i]).call{ value: amountPerRecipient }("");
-            require(success, "Transfer failed.");
+    function withdrawAuto() private {
+        for (uint i = 0; i < _numPayees; i++) {
+            release(payable(payee(i)));
         }
-    }
-
-    function withdraw() public onlyOwner {
-        require(_recipients.length > 0, "no recipients have been added to withdraw to!");
-        uint balance = address(this).balance;
-        require(balance > 0, "No ether left to withdraw");
-
-        uint amountPerRecipient = balance.div(_recipients.length);
-
-        for (uint i = 0; i < _recipients.length; i++) {
-            (bool success, ) = (_recipients[i]).call{ value: amountPerRecipient }("");
-            require(success, "Transfer failed.");
-        }
-    }
-
-    function isRecipient(address payable recipient) public onlyOwner view returns (bool) {
-        for (uint i = 0; i < _recipients.length; i++) {
-            if (recipient == _recipients[i]) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    function setRecipient(address payable recipient) public onlyOwner {
-        if (isRecipient(recipient)) {
-            revert("this recipient already exists");
-        }
-        _recipients.push(recipient);
-        emit SetRecipient(recipient);
     }
 
     function hasFreeMint(address addr) public view returns (bool) {
@@ -169,21 +116,32 @@ contract WorldLeader is ERC721Enumerable, OwnableOrOwned {
         }
     }
 
-    function numWhitelistMintsRemaining(address addr) public view returns (uint) {
-        return _whitelistRemaining[addr];
-    }
-
-    function addAddressesForWhitelist(address[] memory addresses) public onlyOwner {
-        for (uint i = 0; i < addresses.length; i++) {
-            _whitelistRemaining[addresses[i]] = WHITELIST_MAX_AMOUNT;
-        }
-    }
-
     function getReleaseStatus() public view returns (ReleaseStatus) {
         return _releaseStatus;
     }
 
-    function setReleaseStatus(ReleaseStatus releaseStatus) public onlyOwner {
-        _releaseStatus = releaseStatus;
+    function releaseMint() public onlyOwner {
+        require(_releaseStatus == ReleaseStatus.Unreleased, "this mint is already released!");
+        _releaseStatus = ReleaseStatus.Released;
+    }
+
+    function setAutoWithdraw(bool to) public onlyOwner {
+        _autoWithdraw = to;
+    }
+
+    function getAutoWithdraw() public view onlyOwner returns (bool) {
+        return _autoWithdraw;
+    }
+
+    function getPrice() public view onlyOwner returns (uint) {
+        return PRICE;
+    }
+
+    function getMaxSupply() public view onlyOwner returns (uint) {
+        return MAX_SUPPLY;
+    }
+
+    function getNumPayees() public view onlyOwner returns (uint) {
+        return _numPayees;
     }
 }
