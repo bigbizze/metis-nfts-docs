@@ -1,5 +1,6 @@
 # metis-nfts
 
+*A fully on-chain NFT game*
 ____
 
 ### changes from refactor of first version:
